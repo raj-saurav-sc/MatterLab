@@ -1,0 +1,90 @@
+# MatterLab: Universal Material & Fluid Simulator
+
+**MatterLab** is a multi-tiered physics simulator designed for both educational exploration and scientific visualization. It allows users to interact with various states of matter and physical phenomena in a real-time 3D environment.
+
+## 🌟 Features
+
+### 🏗️ Solid Mechanics
+*   **Elastic Deformation**: Visualize stress and strain on materials using Hooke's Law.
+*   **Plasticity & Fracture**: Simulate permanent deformation and material failure under high stress.
+
+### 💧 Fluid Mechanics
+*   **Buoyancy**: Drop objects into fluids and watch them float or sink based on density (Archimedes' Principle).
+*   **Laminar Pipe Flow**: Visualize Poiseuille's Law with a parabolic velocity profile.
+
+### 💨 Gas Dynamics
+*   **Ideal Gas Law**: Interact with pressure, volume, and temperature ($PV = nRT$) in a confined container.
+
+### 🔥 Thermodynamics & Phase Changes
+*   **Phase Transitions**: Watch ice melt to water and boil to steam as you add heat.
+*   **Thermal Conductivity**: Visualize heat propagation through a 1D rod (Heat Equation).
+
+### 🌌 Astrophysics & Motion
+*   **Orbital Mechanics**: Create solar systems with N-body gravity simulation.
+*   **Projectile Motion**: Launch objects and observe the effects of gravity and air resistance.
+
+## 🛠️ Technology Stack
+*   **Language**: C++
+*   **Rendering**: OpenGL (Legacy/Fixed Function for simplicity)
+*   **UI**: [Dear ImGui](https://github.com/ocornut/imgui)
+*   **Plotting**: [ImPlot](https://github.com/epezent/implot)
+*   **Math**: GLM
+*   **Windowing**: GLFW, GLEW
+
+## 🚀 Building and Running
+
+### Prerequisites
+*   C++ Compiler (GCC/Clang/MSVC)
+*   CMake (3.10+)
+*   OpenGL Libraries
+*   GLFW3
+*   GLEW
+
+### Linux (Ubuntu/Debian)
+```bash
+sudo apt-get install build-essential cmake libglfw3-dev libglew-dev
+```
+
+### Build Steps
+```bash
+# Clone the repository
+git clone https://github.com/raj-saurav-sc/MatterLab.git
+cd MatterLab
+
+# Create build directory
+cmake -B build -S .
+
+# Build the project
+cmake --build build
+
+# Run the simulator
+./build/UniversalSimulator
+```
+
+## 🎮 Controls
+
+### Camera
+*   **Orbit**: Right Mouse Button Drag
+*   **Pan**: Middle Mouse Button Drag
+*   **Zoom**: Mouse Scroll Wheel
+*   **UI Buttons**: Use the on-screen controls in the "Camera Controls" panel.
+
+### Simulation
+*   **Select Scenario**: Use the dropdown menu to switch between simulations (Solids, Fluids, Orbit, etc.).
+*   **Parameters**: Adjust sliders to change mass, gravity, viscosity, temperature, etc.
+*   **Modes**: Toggle "Scientific Mode" for detailed equations or "Educational Mode" for simple explanations.
+
+## 🗺️ Roadmap
+
+### Phase 1 (Completed) ✅
+*   Core Physics Engines (Solids, Fluids, Gases)
+*   Basic Visualization
+*   Interactive UI
+
+### Phase 2 (In Progress) 🚧
+*   Advanced Fluid Dynamics (Convection, Turbulence)
+*   Coupled Heat Transfer (Solid-Fluid interaction)
+*   Save/Load Simulation States
+
+## 📄 License
+This project is open source.
