@@ -39,8 +39,13 @@ set(INCLUDE_DIRS
 )
 
 # Source files
-set(SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
+file(GLOB_RECURSE SOURCES 
+    "src/*.cpp" 
+    "src/*.h"
+    "src/core/*.h"
+    "src/core/*.cpp"
+    "src/physics/*.h"
+    "src/physics/solvers/*.h"
 )
 
 # ImGui source files

@@ -93,6 +93,12 @@ cmake --build build
 *   **Parameters**: Adjust sliders to change mass, gravity, viscosity, temperature, etc.
 *   **Modes**: Toggle "Scientific Mode" for detailed equations or "Educational Mode" for simple explanations.
 
+## 🏗️ Architecture
+The project has been refactored into a modular architecture to support advanced features:
+*   **Core**: Handles application lifecycle, windowing, and input (`src/core`).
+*   **Physics**: Defines the `ISolver` interface and material system (`src/physics`).
+*   **Solvers**: Individual simulation modules (`src/physics/solvers`) that can be easily extended.
+
 ## 🗺️ Roadmap
 
 ### Phase 1 (Completed) ✅
@@ -101,9 +107,13 @@ cmake --build build
 *   Interactive UI
 
 ### Phase 2 (In Progress) 🚧
+*   **Architecture Refactor** (Completed) ✅
+    *   Modular `ISolver` interface
+    *   Core/Physics separation
 *   Advanced Fluid Dynamics (Convection, Turbulence)
 *   Coupled Heat Transfer (Solid-Fluid interaction)
 *   Save/Load Simulation States
+*   Data Export (CSV, Images)
 
 ## 📄 License
 This project is open source.
