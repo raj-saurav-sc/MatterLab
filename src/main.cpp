@@ -2355,9 +2355,17 @@ public:
         }
         
         // Create window
+#ifdef __APPLE__
+        // macOS doesn't support OpenGL 3.3 Compatibility Profile.
+        // We must use Legacy OpenGL (2.1) for immediate mode rendering (glBegin/glEnd).
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+        // No profile hint needed for 2.1
+#else
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
+#endif
         
         window = glfwCreateWindow(1600, 1200, "Universal Material & Fluid Simulator", nullptr, nullptr);
         if (!window) {
@@ -2384,7 +2392,12 @@ public:
         
         ImGui::StyleColorsDark();
         ImGui_ImplGlfw_InitForOpenGL(window, true);
+        
+#ifdef __APPLE__
+        ImGui_ImplOpenGL3_Init("#version 120");
+#else
         ImGui_ImplOpenGL3_Init("#version 330");
+#endif
         
         // Setup OpenGL
         glEnable(GL_DEPTH_TEST);
