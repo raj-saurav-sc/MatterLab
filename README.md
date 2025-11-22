@@ -45,16 +45,35 @@
 sudo apt-get install build-essential cmake libglfw3-dev libglew-dev
 ```
 
+### macOS (Homebrew)
+```bash
+brew install cmake glfw glew glm
+```
+
+### Windows (vcpkg)
+1.  Install [vcpkg](https://github.com/microsoft/vcpkg).
+2.  Install dependencies:
+    ```powershell
+    vcpkg install glfw3 glew glm opengl
+    ```
+3.  When running CMake, specify the vcpkg toolchain file:
+    ```powershell
+    cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=[path to vcpkg]/scripts/buildsystems/vcpkg.cmake
+    ```
+
 ### Build Steps
 ```bash
 # Clone the repository
 git clone https://github.com/raj-saurav-sc/MatterLab.git
 cd MatterLab
 
+# Initialize submodules (Critical for third-party dependencies)
+git submodule update --init --recursive
+
 # Create build directory
 cmake -B build -S .
 
-# Build the project
+# Build the project (Assets are automatically copied to the build directory)
 cmake --build build
 
 # Run the simulator

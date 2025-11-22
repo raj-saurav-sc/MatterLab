@@ -16,10 +16,65 @@
 #include <cmath>
 #include <string>
 #include <map>
+#include <fstream>
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
+
+// ============================================================================
+// UTILITIES
+// ============================================================================
+void exportToCSV(const std::string& filename, const std::vector<std::string>& headers, const std::vector<std::vector<float>>& data) {
+    std::ofstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file for writing: " << filename << std::endl;
+        return;
+    }
+    
+    // Write headers
+    for (size_t i = 0; i < headers.size(); ++i) {
+        file << headers[i];
+        if (i < headers.size() - 1) file << ",";
+    }
+    file << "\n";
+    
+    // Write data
+    // Assuming data is a vector of columns (each inner vector is a column)
+    // We need to iterate rows
+    if (data.empty()) return;
+    size_t numRows = data[0].size();
+    size_t numCols = data.size();
+    
+    for (size_t i = 0; i < numRows; ++i) {
+        for (size_t j = 0; j < numCols; ++j) {
+            if (i < data[j].size()) {
+                file << data[j][i];
+            }
+            if (j < numCols - 1) file << ",";
+        }
+        file << "\n";
+    }
+    
+    std::cout << "Exported data to " << filename << std::endl;
+}
+
+// Image Capture State
+bool captureNextFrame = false;
+std::string captureFilename;
+ImVec2 captureMin;
+ImVec2 captureMax;
+
+void requestPlotCapture(const std::string& filename) {
+    captureNextFrame = true;
+    captureFilename = filename;
+    // Get the rect of the last item (the plot)
+    captureMin = ImGui::GetItemRectMin();
+    captureMax = ImGui::GetItemRectMax();
+}
 
 // ============================================================================
 // CORE PHYSICS CALCULATIONS
@@ -473,6 +528,23 @@ public:
             ImPlot::EndPlot();
         }
         
+        if (ImGui::Button("Export to CSV")) {
+            std::vector<std::string> headers = {"Strain (%)", "Stress (MPa)"};
+            std::vector<std::vector<float>> data;
+            std::vector<float> strainCol, stressCol;
+            for (const auto& p : stressStrainData) {
+                strainCol.push_back(p.x);
+                stressCol.push_back(p.y);
+            }
+            data.push_back(strainCol);
+            data.push_back(stressCol);
+            exportToCSV("solid_mechanics_data.csv", headers, data);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Save Image")) {
+            requestPlotCapture("solid_mechanics_plot.png");
+        }
+        
         // Loading history graph
         if (ImPlot::BeginPlot("Loading History", plot_size)) {
             if (!loadingHistory.empty()) {
@@ -873,6 +945,23 @@ public:
             ImPlot::EndPlot();
         }
         
+        if (ImGui::Button("Export PV Data")) {
+            std::vector<std::string> headers = {"Volume (L)", "Pressure (kPa)"};
+            std::vector<std::vector<float>> data;
+            std::vector<float> volCol, pressCol;
+            for (const auto& p : pvData) {
+                volCol.push_back(p.x);
+                pressCol.push_back(p.y);
+            }
+            data.push_back(volCol);
+            data.push_back(pressCol);
+            exportToCSV("gas_pv_data.csv", headers, data);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Save PV Plot")) {
+            requestPlotCapture("gas_pv_plot.png");
+        }
+        
         if (ImPlot::BeginPlot("Temperature vs Volume", plot_size)) {
             if (!tvData.empty()) {
                 std::vector<float> tempVec, volumeVec;
@@ -883,6 +972,9 @@ public:
                 ImPlot::PlotLine("T vs V", tempVec.data(), volumeVec.data(), tempVec.size());
             }
             ImPlot::EndPlot();
+        }
+        if (ImGui::Button("Save TV Plot")) {
+            requestPlotCapture("gas_tv_plot.png");
         }
     }
     
@@ -1078,6 +1170,23 @@ public:
                 ImPlot::PlotInfLines("Boiling Point", &material.boilingPoint, 1);
             }
             ImPlot::EndPlot();
+        }
+        
+        if (ImGui::Button("Export Temp Data")) {
+            std::vector<std::string> headers = {"Time (s)", "Temperature (C)"};
+            std::vector<std::vector<float>> data;
+            std::vector<float> timeCol, tempCol;
+            for (const auto& p : tempTimeData) {
+                timeCol.push_back(p.x);
+                tempCol.push_back(p.y);
+            }
+            data.push_back(timeCol);
+            data.push_back(tempCol);
+            exportToCSV("phase_change_data.csv", headers, data);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Save Image")) {
+            requestPlotCapture("phase_change_plot.png");
         }
     }
     
@@ -1810,6 +1919,24 @@ public:
             ImPlot::PlotLine("Velocity vs Radius", rVec.data(), vVec.data(), rVec.size());
             ImPlot::EndPlot();
         }
+        
+        if (ImGui::Button("Export Velocity Data")) {
+            std::vector<std::string> headers = {"Radius (m)", "Velocity (m/s)"};
+            std::vector<std::vector<float>> data;
+            std::vector<float> radCol, velCol;
+            for (float r = -pipeRadius; r <= pipeRadius; r += pipeRadius/20.0f) {
+                radCol.push_back(r);
+                float v = (pressureDiff / (4.0f * std::max(fluid.viscosity, 0.0001) * pipeLength)) * (pipeRadius * pipeRadius - r * r);
+                velCol.push_back(v);
+            }
+            data.push_back(radCol);
+            data.push_back(velCol);
+            exportToCSV("pipe_flow_data.csv", headers, data);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Save Image")) {
+            requestPlotCapture("pipe_flow_plot.png");
+        }
     }
     
     void render3D() {
@@ -1843,6 +1970,334 @@ public:
     }
 };
 
+class ConvectionSimulator {
+private:
+    struct Particle {
+        glm::vec3 position;
+        glm::vec3 velocity;
+        float temperature; // 0.0 (Cold) to 1.0 (Hot)
+        float size;
+    };
+    
+    std::vector<Particle> particles;
+    float boxWidth = 4.0f;
+    float boxHeight = 3.0f;
+    float boxDepth = 1.0f;
+    
+    float bottomTemp = 1.0f; // Hot
+    float topTemp = 0.0f;    // Cold
+    float viscosity = 0.1f;
+    float buoyancyStrength = 5.0f;
+    
+public:
+    ConvectionSimulator() {
+        resetSimulation();
+    }
+    
+    void resetSimulation() {
+        particles.clear();
+        for (int i = 0; i < 500; ++i) {
+            spawnParticle();
+        }
+    }
+    
+    void spawnParticle() {
+        float x = ((float)rand() / RAND_MAX) * boxWidth - boxWidth/2;
+        float y = ((float)rand() / RAND_MAX) * boxHeight - boxHeight/2;
+        float z = ((float)rand() / RAND_MAX) * boxDepth - boxDepth/2;
+        
+        // Initial temp depends on height
+        float normalizedHeight = (y + boxHeight/2) / boxHeight;
+        float temp = 1.0f - normalizedHeight; 
+        
+        particles.push_back({
+            glm::vec3(x, y, z),
+            glm::vec3(0,0,0),
+            temp,
+            0.05f + ((float)rand() / RAND_MAX) * 0.05f
+        });
+    }
+    
+    void update(float deltaTime) {
+        for (auto& p : particles) {
+            // 1. Heat Transfer from boundaries
+            float distToBottom = p.position.y - (-boxHeight/2);
+            float distToTop = (boxHeight/2) - p.position.y;
+            
+            if (distToBottom < 0.2f) {
+                p.temperature += (bottomTemp - p.temperature) * deltaTime * 2.0f;
+            }
+            if (distToTop < 0.2f) {
+                p.temperature += (topTemp - p.temperature) * deltaTime * 2.0f;
+            }
+            
+            // 2. Buoyancy Force (Hot rises, Cold sinks)
+            // F_b = (T - T_avg) * g
+            float buoyancy = (p.temperature - 0.5f) * buoyancyStrength;
+            p.velocity.y += buoyancy * deltaTime;
+            
+            // 3. Viscosity / Drag
+            p.velocity -= p.velocity * viscosity * deltaTime;
+            
+            // 4. Horizontal movement (simplified convection roll)
+            // If hitting top/bottom, move sideways to create cycle
+            if (distToTop < 0.5f || distToBottom < 0.5f) {
+                // Push away from center to start rolls
+                if (p.position.x > 0) p.velocity.x += 1.0f * deltaTime;
+                else p.velocity.x -= 1.0f * deltaTime;
+            }
+            
+            // 5. Update Position
+            p.position += p.velocity * deltaTime;
+            
+            // 6. Boundaries
+            if (p.position.y > boxHeight/2) {
+                p.position.y = boxHeight/2;
+                p.velocity.y *= -0.5f;
+            }
+            if (p.position.y < -boxHeight/2) {
+                p.position.y = -boxHeight/2;
+                p.velocity.y *= -0.5f;
+            }
+            if (p.position.x > boxWidth/2) {
+                p.position.x = -boxWidth/2; // Wrap around x
+            }
+            if (p.position.x < -boxWidth/2) {
+                p.position.x = boxWidth/2;
+            }
+            if (p.position.z > boxDepth/2) {
+                p.position.z = boxDepth/2;
+                p.velocity.z *= -0.5f;
+            }
+            if (p.position.z < -boxDepth/2) {
+                p.position.z = -boxDepth/2;
+                p.velocity.z *= -0.5f;
+            }
+        }
+    }
+    
+    void renderUI() {
+        ImGui::Text("Convection Simulation");
+        ImGui::Separator();
+        
+        ImGui::SliderFloat("Bottom Temp (Hot)", &bottomTemp, 0.5f, 2.0f);
+        ImGui::SliderFloat("Top Temp (Cold)", &topTemp, -1.0f, 0.5f);
+        ImGui::SliderFloat("Viscosity", &viscosity, 0.01f, 2.0f);
+        ImGui::SliderFloat("Buoyancy Strength", &buoyancyStrength, 1.0f, 20.0f);
+        
+        if (ImGui::Button("Reset Simulation")) {
+            resetSimulation();
+        }
+        
+        ImGui::Separator();
+        ImGui::Text("Particles: %zu", particles.size());
+        ImGui::Text("Red = Hot (Rising)");
+        ImGui::Text("Blue = Cold (Sinking)");
+    }
+    
+    void renderGraph() {
+        ImGui::Text("See 3D view for convection cells");
+    }
+    
+    void render3D() {
+        // Debug print
+        // std::cout << "Rendering Convection. Particles: " << particles.size() << std::endl;
+        if (!particles.empty()) {
+            // std::cout << "P0: " << particles[0].position.x << ", " << particles[0].position.y << ", " << particles[0].position.z << std::endl;
+        }
+        // Render Box
+        glColor3f(1.0f, 1.0f, 1.0f);
+        glLineWidth(2.0f);
+        glBegin(GL_LINES);
+        // Bottom rect
+        glVertex3f(-boxWidth/2, -boxHeight/2, -boxDepth/2); glVertex3f(boxWidth/2, -boxHeight/2, -boxDepth/2);
+        glVertex3f(boxWidth/2, -boxHeight/2, -boxDepth/2); glVertex3f(boxWidth/2, -boxHeight/2, boxDepth/2);
+        glVertex3f(boxWidth/2, -boxHeight/2, boxDepth/2); glVertex3f(-boxWidth/2, -boxHeight/2, boxDepth/2);
+        glVertex3f(-boxWidth/2, -boxHeight/2, boxDepth/2); glVertex3f(-boxWidth/2, -boxHeight/2, -boxDepth/2);
+        // Top rect
+        glVertex3f(-boxWidth/2, boxHeight/2, -boxDepth/2); glVertex3f(boxWidth/2, boxHeight/2, -boxDepth/2);
+        glVertex3f(boxWidth/2, boxHeight/2, -boxDepth/2); glVertex3f(boxWidth/2, boxHeight/2, boxDepth/2);
+        glVertex3f(boxWidth/2, boxHeight/2, boxDepth/2); glVertex3f(-boxWidth/2, boxHeight/2, boxDepth/2);
+        glVertex3f(-boxWidth/2, boxHeight/2, boxDepth/2); glVertex3f(-boxWidth/2, boxHeight/2, -boxDepth/2);
+        // Connectors
+        glVertex3f(-boxWidth/2, -boxHeight/2, -boxDepth/2); glVertex3f(-boxWidth/2, boxHeight/2, -boxDepth/2);
+        glVertex3f(boxWidth/2, -boxHeight/2, -boxDepth/2); glVertex3f(boxWidth/2, boxHeight/2, -boxDepth/2);
+        glVertex3f(boxWidth/2, -boxHeight/2, boxDepth/2); glVertex3f(boxWidth/2, boxHeight/2, boxDepth/2);
+        glVertex3f(-boxWidth/2, -boxHeight/2, boxDepth/2); glVertex3f(-boxWidth/2, boxHeight/2, boxDepth/2);
+        glEnd();
+        
+        // Render Particles
+        // Use Quads instead of Points for better visibility/compatibility
+        glBegin(GL_QUADS);
+        float s = 0.05f; // Size of particle
+        for (const auto& p : particles) {
+            // Color map: Blue (0.0) -> Red (1.0)
+            float t = glm::clamp(p.temperature, 0.0f, 1.0f);
+            glColor3f(t, 0.2f, 1.0f - t);
+            
+            glVertex3f(p.position.x - s, p.position.y - s, p.position.z);
+            glVertex3f(p.position.x + s, p.position.y - s, p.position.z);
+            glVertex3f(p.position.x + s, p.position.y + s, p.position.z);
+            glVertex3f(p.position.x - s, p.position.y + s, p.position.z);
+        }
+        glEnd();
+    }
+};
+
+class CoupledHeatSimulator {
+private:
+    float solidTemp;
+    float fluidTemp;
+    float solidMass = 1.0f;
+    float fluidMass = 5.0f;
+    float solidSpecificHeat = 450.0f; // Steel J/kgK
+    float fluidSpecificHeat = 4186.0f; // Water J/kgK
+    float heatTransferCoeff = 50.0f; // W/m^2K
+    float surfaceArea = 0.06f; // 0.1m x 0.1m x 6 faces
+    
+    std::vector<glm::vec2> solidTempHistory;
+    std::vector<glm::vec2> fluidTempHistory;
+    float time = 0.0f;
+    
+public:
+    CoupledHeatSimulator() {
+        resetSimulation();
+    }
+    
+    void resetSimulation() {
+        solidTemp = 100.0f; // Hot
+        fluidTemp = 20.0f;  // Cold
+        time = 0.0f;
+        solidTempHistory.clear();
+        fluidTempHistory.clear();
+    }
+    
+    void update(float deltaTime) {
+        time += deltaTime;
+        
+        // Newton's Law of Cooling / Heating
+        // Q_dot = h * A * (T_solid - T_fluid)
+        // dT_solid/dt = -Q_dot / (m_solid * c_solid)
+        // dT_fluid/dt = Q_dot / (m_fluid * c_fluid)
+        
+        float q_dot = heatTransferCoeff * surfaceArea * (solidTemp - fluidTemp);
+        
+        float deltaT_solid = -(q_dot / (solidMass * solidSpecificHeat)) * deltaTime;
+        float deltaT_fluid = (q_dot / (fluidMass * fluidSpecificHeat)) * deltaTime;
+        
+        solidTemp += deltaT_solid;
+        fluidTemp += deltaT_fluid;
+        
+        if (time > 0.1f) { // Sample every 0.1s
+             solidTempHistory.push_back(glm::vec2(time, solidTemp));
+             fluidTempHistory.push_back(glm::vec2(time, fluidTemp));
+             if (solidTempHistory.size() > 1000) solidTempHistory.erase(solidTempHistory.begin());
+             if (fluidTempHistory.size() > 1000) fluidTempHistory.erase(fluidTempHistory.begin());
+        }
+    }
+    
+    void renderUI() {
+        ImGui::Text("Coupled Heat Transfer");
+        ImGui::Separator();
+        
+        ImGui::SliderFloat("Solid Temp", &solidTemp, 0.0f, 200.0f);
+        ImGui::SliderFloat("Fluid Temp", &fluidTemp, 0.0f, 100.0f);
+        ImGui::SliderFloat("Heat Transfer Coeff (h)", &heatTransferCoeff, 1.0f, 500.0f);
+        
+        if (ImGui::Button("Reset Simulation")) {
+            resetSimulation();
+        }
+        
+        ImGui::Separator();
+        ImGui::Text("Solid Temp: %.2f C", solidTemp);
+        ImGui::Text("Fluid Temp: %.2f C", fluidTemp);
+    }
+    
+    void renderGraph() {
+        if (ImPlot::BeginPlot("Temperature vs Time")) {
+            ImPlot::SetupAxes("Time (s)", "Temp (C)");
+            if (!solidTempHistory.empty()) {
+                ImPlot::PlotLine("Solid", &solidTempHistory[0].x, &solidTempHistory[0].y, solidTempHistory.size(), 0, 0, sizeof(glm::vec2));
+                ImPlot::PlotLine("Fluid", &fluidTempHistory[0].x, &fluidTempHistory[0].y, fluidTempHistory.size(), 0, 0, sizeof(glm::vec2));
+            }
+            ImPlot::EndPlot();
+        }
+        
+        if (ImGui::Button("Export Heat Data")) {
+            std::vector<std::string> headers = {"Time (s)", "Solid Temp (C)", "Fluid Temp (C)"};
+            std::vector<std::vector<float>> data;
+            std::vector<float> timeCol, solidCol, fluidCol;
+            for (size_t i = 0; i < solidTempHistory.size(); ++i) {
+                timeCol.push_back(solidTempHistory[i].x);
+                solidCol.push_back(solidTempHistory[i].y);
+                if (i < fluidTempHistory.size()) {
+                    fluidCol.push_back(fluidTempHistory[i].y);
+                } else {
+                    fluidCol.push_back(0.0f);
+                }
+            }
+            data.push_back(timeCol);
+            data.push_back(solidCol);
+            data.push_back(fluidCol);
+            exportToCSV("coupled_heat_data.csv", headers, data);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Save Image")) {
+            requestPlotCapture("coupled_heat_plot.png");
+        }
+    }
+    
+    void render3D() {
+        // Render Fluid Container (Transparent Box)
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        
+        // Fluid Color based on temp (Blue -> Red)
+        float t_fluid = glm::clamp((fluidTemp - 20.0f) / 80.0f, 0.0f, 1.0f);
+        glColor4f(t_fluid, 0.2f, 1.0f - t_fluid, 0.3f);
+        
+        float size = 2.0f;
+        // Draw Cube (Fluid)
+        glBegin(GL_QUADS);
+        // Front
+        glVertex3f(-size, -size, size); glVertex3f(size, -size, size); glVertex3f(size, size, size); glVertex3f(-size, size, size);
+        // Back
+        glVertex3f(-size, -size, -size); glVertex3f(-size, size, -size); glVertex3f(size, size, -size); glVertex3f(size, -size, -size);
+        // Top
+        glVertex3f(-size, size, -size); glVertex3f(-size, size, size); glVertex3f(size, size, size); glVertex3f(size, size, -size);
+        // Bottom
+        glVertex3f(-size, -size, -size); glVertex3f(size, -size, -size); glVertex3f(size, -size, size); glVertex3f(-size, -size, size);
+        // Right
+        glVertex3f(size, -size, -size); glVertex3f(size, size, -size); glVertex3f(size, size, size); glVertex3f(size, -size, size);
+        // Left
+        glVertex3f(-size, -size, -size); glVertex3f(-size, -size, size); glVertex3f(-size, size, size); glVertex3f(-size, size, -size);
+        glEnd();
+        
+        // Render Solid Block (Opaque)
+        // Solid Color based on temp (Blue -> Red)
+        float t_solid = glm::clamp((solidTemp - 20.0f) / 180.0f, 0.0f, 1.0f);
+        glColor4f(t_solid, 0.0f, 1.0f - t_solid, 1.0f);
+        
+        float solidSize = 0.5f;
+        glBegin(GL_QUADS);
+        // Front
+        glVertex3f(-solidSize, -solidSize, solidSize); glVertex3f(solidSize, -solidSize, solidSize); glVertex3f(solidSize, solidSize, solidSize); glVertex3f(-solidSize, solidSize, solidSize);
+        // Back
+        glVertex3f(-solidSize, -solidSize, -solidSize); glVertex3f(-solidSize, solidSize, -solidSize); glVertex3f(solidSize, solidSize, -solidSize); glVertex3f(solidSize, -solidSize, -solidSize);
+        // Top
+        glVertex3f(-solidSize, solidSize, -solidSize); glVertex3f(-solidSize, solidSize, solidSize); glVertex3f(solidSize, solidSize, solidSize); glVertex3f(solidSize, solidSize, -solidSize);
+        // Bottom
+        glVertex3f(-solidSize, -solidSize, -solidSize); glVertex3f(solidSize, -solidSize, -solidSize); glVertex3f(size, -solidSize, solidSize); glVertex3f(-solidSize, -solidSize, solidSize);
+        // Right
+        glVertex3f(solidSize, -solidSize, -solidSize); glVertex3f(solidSize, solidSize, -solidSize); glVertex3f(solidSize, solidSize, solidSize); glVertex3f(solidSize, -solidSize, solidSize);
+        // Left
+        glVertex3f(-solidSize, -solidSize, -solidSize); glVertex3f(-solidSize, -solidSize, solidSize); glVertex3f(-solidSize, solidSize, solidSize); glVertex3f(-solidSize, solidSize, -solidSize);
+        glEnd();
+        
+        glDisable(GL_BLEND);
+    }
+};
+
 class UniversalSimulator {
 private:
     GLFWwindow* window;
@@ -1857,6 +2312,8 @@ private:
     std::unique_ptr<ProjectileMotionSimulator> projectileSim;
     std::unique_ptr<OrbitalMechanicsSimulator> orbitalSim;
     std::unique_ptr<PipeFlowSimulator> pipeSim;
+    std::unique_ptr<ConvectionSimulator> convectionSim;
+    std::unique_ptr<CoupledHeatSimulator> coupledSim;
     
     // UI State
     int currentScenario = 0; // 0=Solid, 1=Fluid, 2=Gas, 3=Phase
@@ -1886,6 +2343,8 @@ public:
         projectileSim = std::make_unique<ProjectileMotionSimulator>();
         orbitalSim = std::make_unique<OrbitalMechanicsSimulator>();
         pipeSim = std::make_unique<PipeFlowSimulator>();
+        convectionSim = std::make_unique<ConvectionSimulator>();
+        coupledSim = std::make_unique<CoupledHeatSimulator>();
     }
     
     bool initialize() {
@@ -2038,6 +2497,8 @@ public:
         projectileSim->update(deltaTime);
         orbitalSim->update(deltaTime);
         pipeSim->update(deltaTime);
+        convectionSim->update(deltaTime);
+        coupledSim->update(deltaTime);
     }
     
     void render() {
@@ -2072,6 +2533,8 @@ public:
             case 5: projectileSim->render3D(); break;
             case 6: orbitalSim->render3D(); break;
             case 7: pipeSim->render3D(); break;
+            case 8: convectionSim->render3D(); break;
+            case 9: coupledSim->render3D(); break;
         }
         
         // Render coordinate axes
@@ -2152,8 +2615,8 @@ public:
         ImGui::Separator();
         ImGui::Text("Select Simulation Scenario:");
         
-        const char* scenarios[] = {"Solid Mechanics", "Fluid Mechanics", "Gas Dynamics", "Phase Change", "Thermal Conductivity", "Projectile Motion", "Orbital Mechanics", "Laminar Pipe Flow"};
-        if (ImGui::Combo("Scenario", &currentScenario, scenarios, 8)) {
+        const char* scenarios[] = {"Solid Mechanics", "Fluid Mechanics", "Gas Dynamics", "Phase Change", "Thermal Conductivity", "Projectile Motion", "Orbital Mechanics", "Laminar Pipe Flow", "Fluid Convection", "Coupled Heat Transfer"};
+        if (ImGui::Combo("Scenario", &currentScenario, scenarios, 10)) {
             // Switch to selected scenario
             switchScenario(currentScenario);
         }
@@ -2289,6 +2752,20 @@ public:
                     ImGui::TextWrapped("Educational Mode: Watch fluid flow through a pipe. It moves fastest in the middle!");
                 }
                 break;
+            case 8:
+                convectionSim->renderUI();
+                if (!scientificMode) {
+                    ImGui::Separator();
+                    ImGui::TextWrapped("Educational Mode: Hot fluid rises (Red), Cold fluid sinks (Blue). This creates a cycle!");
+                }
+                break;
+            case 9:
+                coupledSim->renderUI();
+                if (!scientificMode) {
+                    ImGui::Separator();
+                    ImGui::TextWrapped("Educational Mode: The hot block cools down by giving heat to the water, until they are both the same temperature.");
+                }
+                break;
         }
         
         ImGui::End();
@@ -2321,6 +2798,12 @@ public:
                 break;
             case 7:
                 pipeSim->renderGraph();
+                break;
+            case 8:
+                convectionSim->renderGraph();
+                break;
+            case 9:
+                coupledSim->renderGraph();
                 break;
             default:
                 ImGui::Text("No graphs available for this scenario");
@@ -2447,6 +2930,28 @@ public:
                     ImGui::TextWrapped("Fluids stick to the walls of the pipe, so they move slower there and faster in the middle!");
                 }
                 break;
+                
+            case 8:
+                ImGui::Text("FLUID CONVECTION");
+                ImGui::Separator();
+                if (scientificMode) {
+                    ImGui::TextWrapped("Rayleigh-Bénard Convection");
+                    ImGui::TextWrapped("Buoyancy driven flow due to temperature gradient.");
+                } else {
+                    ImGui::TextWrapped("When you heat a fluid from the bottom, it gets lighter and rises. When it cools at the top, it gets heavier and sinks. This creates a loop!");
+                }
+                break;
+                
+            case 9:
+                ImGui::Text("COUPLED HEAT TRANSFER");
+                ImGui::Separator();
+                if (scientificMode) {
+                    ImGui::TextWrapped("Conjugate Heat Transfer");
+                    ImGui::TextWrapped("Newton's Law of Cooling: Q = h*A*(T_obj - T_fluid)");
+                } else {
+                    ImGui::TextWrapped("Heat flows from the hot object to the cold fluid. The bigger the temperature difference, the faster it flows!");
+                }
+                break;
 
             case 1:
                 ImGui::Text("FLUID MECHANICS");
@@ -2569,6 +3074,12 @@ public:
                 break;
             case 7:
                 pipeSim->resetParticles();
+                break;
+            case 8:
+                convectionSim->resetSimulation();
+                break;
+            case 9:
+                coupledSim->resetSimulation();
                 break;
         }
     }

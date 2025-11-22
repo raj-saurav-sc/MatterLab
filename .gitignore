@@ -19,3 +19,12 @@ Makefile
 
 # Application specific
 imgui.ini
+
+#Visualizations
+*.csv
+*.png
+*.jpg
+*.jpeg
+*.bmp
+*.tiff
+*.webp
