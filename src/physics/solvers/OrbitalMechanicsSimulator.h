@@ -85,7 +85,9 @@ public:
         float x = r * cos(theta);
         float z = r * sin(theta);
         
-        float vMag = sqrt(G * bodies[0].mass / r);
+        // Protect division by zero
+        float r_safe = std::max(r, 0.1f);
+        float vMag = sqrt(G * bodies[0].mass / r_safe);
         float vx = -vMag * sin(theta);
         float vz = vMag * cos(theta);
         
@@ -116,9 +118,11 @@ public:
                 force += glm::normalize(diff) * fMag;
             }
             
-            // F = ma -> a = F/m
-            glm::vec3 acceleration = force / bodies[i].mass;
-            bodies[i].velocity += acceleration * dt;
+            // F = ma -> a = F/m (protect division by zero)
+            if (bodies[i].mass > 1e-6f) {
+                glm::vec3 acceleration = force / bodies[i].mass;
+                bodies[i].velocity += acceleration * dt;
+            }
         }
         
         // Update positions

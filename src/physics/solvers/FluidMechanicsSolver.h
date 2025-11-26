@@ -61,7 +61,13 @@ public:
         
         // Calculate terminal velocity (simplified)
         double netForce = buoyantForce - weight;
-        terminalVelocity = std::sqrt(std::abs(netForce) / (0.5 * fluid.density * 3.14159 * objectRadius * objectRadius));
+        double denominator = 0.5 * fluid.density * 3.14159 * objectRadius * objectRadius;
+        
+        if (denominator > 1e-10) {
+            terminalVelocity = std::sqrt(std::abs(netForce) / denominator);
+        } else {
+            terminalVelocity = 0.0;
+        }
         
         // Set target position for animation
         targetPosition = floats ? 0.5f : -0.5f;

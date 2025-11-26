@@ -71,6 +71,11 @@ public:
     void calculate() {
         const float R = 8.314f;
         
+        // Validate inputs to prevent division by zero
+        if (volume <= 1e-6f) volume = 0.1f;
+        if (moles <= 1e-6f) moles = 0.1f;
+        if (temperature <= 1e-6f) temperature = 273.15f;
+        
         // Calculate ideal gas pressure first
         idealPressure = (moles * R * temperature) / volume;
         
@@ -80,23 +85,41 @@ public:
             float a = gas.vanDerWaalsA;
             float b = gas.vanDerWaalsB;
             
-            float term1 = (moles * R * temperature) / (volume - moles * b);
-            float term2 = (a * moles * moles) / (volume * volume);
-            pressure = term1 - term2;
-            
-            // Compressibility factor Z = PV/nRT
-            compressibilityFactor = (pressure * volume) / (moles * R * temperature);
+            // Protect Van der Waals calculation
+            float denominator = volume - moles * b;
+            if (std::abs(denominator) < 1e-6f) {
+                // Volume too close to excluded volume, use ideal gas
+                std::cerr << "Warning: Volume too close to excluded volume, using ideal gas\n";
+                pressure = idealPressure;
+                compressibilityFactor = 1.0f;
+            } else {
+                float term1 = (moles * R * temperature) / denominator;
+                float term2 = (a * moles * moles) / (volume * volume);
+                pressure = term1 - term2;
+                
+                // Compressibility factor Z = PV/nRT
+                float denom_z = moles * R * temperature;
+                if (std::abs(denom_z) > 1e-6f) {
+                    compressibilityFactor = (pressure * volume) / denom_z;
+                } else {
+                    compressibilityFactor = 1.0f;
+                }
+            }
         } else {
             // Ideal gas
             pressure = idealPressure;
             compressibilityFactor = 1.0f;
         }
         
-        // Update graph data
+        // Clamp to reasonable values
+        pressure = std::clamp(pressure, 0.0f, 1e8f);
+        compressibilityFactor = std::clamp(compressibilityFactor, 0.0f, 10.0f);
+        
+        // Add to data history
         pvData.push_back(glm::vec2(volume, pressure / 1000.0f)); // m³ vs kPa
         if (pvData.size() > 100) pvData.erase(pvData.begin());
         
-        tvData.push_back(glm::vec2(temperature, volume));
+        tvData.push_back(glm::vec2(temperature, volume)); // Corrected to use volume, not pressure
         if (tvData.size() > 100) tvData.erase(tvData.begin());
         
         zData.push_back(glm::vec2(pressure / 1000.0f, compressibilityFactor));
