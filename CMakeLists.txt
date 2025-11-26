@@ -5,6 +5,14 @@ project(UniversalSimulator VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Print configuration
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "C++ standard: ${CMAKE_CXX_STANDARD}")
+message(STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID}")
+
+# Add tests subdirectory
+add_subdirectory(tests)
+
 # Set build type to Release by default
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
