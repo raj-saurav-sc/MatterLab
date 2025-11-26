@@ -31,6 +31,10 @@ private:
     // Animation and visualization
     std::vector<glm::vec3> crackLines;
     
+    // Automated tensile test state
+    bool tensileTestRunning = false;
+    float tensileTestForce = 0.0f;
+    
 public:
     std::string getName() const override { return "Solid Mechanics"; }
 
@@ -102,15 +106,26 @@ public:
         elongation = materialState.totalStrain * length;
         
         // Add to stress-strain curve (with validation)
-        if (std::isfinite(materialState.totalStrain) && std::isfinite(stress)) {
-            stressStrainData.push_back(glm::vec2(materialState.totalStrain * 100, stress / 1e6));
-            loadingHistory.push_back(glm::vec2(ImGui::GetTime(), appliedForce));
+        // Only add points with positive strain to avoid curve floating from negative values
+        if (std::isfinite(materialState.totalStrain) && std::isfinite(stress) && materialState.totalStrain >= 0) {
+            // Only add point if it's sufficiently different from the last one to avoid density issues
+            bool addPoint = true;
+            if (!stressStrainData.empty()) {
+                float strainDiff = std::abs(materialState.totalStrain * 100 - stressStrainData.back().x);
+                if (strainDiff < 0.01f) addPoint = false; // Minimum 0.01% strain difference
+            }
+            
+            if (addPoint) {
+                stressStrainData.push_back(glm::vec2(materialState.totalStrain * 100, stress / 1e6));
+                loadingHistory.push_back(glm::vec2(ImGui::GetTime(), appliedForce));
+            }
         }
         
-        if (stressStrainData.size() > 1000) {
+        // Increase buffer size to keep full history for tensile tests
+        if (stressStrainData.size() > 50000) {
             stressStrainData.erase(stressStrainData.begin());
         }
-        if (loadingHistory.size() > 1000) {
+        if (loadingHistory.size() > 50000) {
             loadingHistory.erase(loadingHistory.begin());
         }
         
@@ -136,13 +151,13 @@ public:
         ImGui::Separator();
         ImGui::Text("Advanced Loading:");
         
-        static float cyclicAmplitude = 10000.0f;
+        static float cyclicAmplitude = 250000.0f;  // 250 kN - enough to reach yield
         static float cyclicFrequency = 0.5f;
         static bool enableCyclicLoading = false;
         
         ImGui::Checkbox("Enable Cyclic Loading", &enableCyclicLoading);
         if (enableCyclicLoading) {
-            ImGui::SliderFloat("Amplitude (N)", &cyclicAmplitude, 1000, 50000);
+            ImGui::SliderFloat("Amplitude (N)", &cyclicAmplitude, 10000, 500000);  // 10kN to 500kN
             ImGui::SliderFloat("Frequency (Hz)", &cyclicFrequency, 0.1f, 2.0f);
             
             float cyclicForce = cyclicAmplitude * sin(ImGui::GetTime() * 2 * M_PI * cyclicFrequency);
@@ -155,6 +170,13 @@ public:
         ImGui::SameLine();
         if (ImGui::Button("Reset Material")) {
             resetMaterial();
+            tensileTestRunning = false; // Also stop any running test
+        }
+        
+        // Show tensile test status
+        if (tensileTestRunning) {
+            ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "Tensile Test Running...");
+            ImGui::Text("Current Force: %.1f kN", tensileTestForce / 1000.0f);
         }
         
         ImGui::Separator();
@@ -207,8 +229,11 @@ public:
         
         if (ImPlot::BeginPlot("Advanced Stress-Strain Curve", plot_size, flags)) {
             ImPlot::SetupAxes("Strain (%)", "Stress (MPa)");
-            ImPlot::SetupAxisLimits(ImAxis_X1, 0, 10, ImPlotCond_Once);
-            ImPlot::SetupAxisLimits(ImAxis_Y1, 0, 500, ImPlotCond_Once);
+            
+            // Lock axes to prevent plot from floating/moving
+            // Use ImPlotCond_Always to keep axes fixed even as data changes
+            ImPlot::SetupAxisLimits(ImAxis_X1, 0, 15, ImPlotCond_Always);  // 0-15% strain range
+            ImPlot::SetupAxisLimits(ImAxis_Y1, 0, 500, ImPlotCond_Always); // 0-500 MPa stress range
             
             if (!stressStrainData.empty()) {
                 std::vector<float> strainVec, stressVec;
@@ -218,10 +243,45 @@ public:
                 }
                 ImPlot::PlotLine("Stress-Strain", strainVec.data(), stressVec.data(), strainVec.size());
                 
-                // Add material property lines
-                // Yield strength line
-                ImPlot::PlotInfLines("Yield Point", &material.yieldStrength, 1);
-                ImPlot::PlotInfLines("Ultimate Strength", &material.ultimateTensileStrength, 1);
+                // Add material property reference lines (convert to MPa)
+                float yieldMPa = material.yieldStrength / 1e6f;
+                float utsMPa = material.ultimateTensileStrength / 1e6f;
+                ImPlot::PlotInfLines("Yield Point", &yieldMPa, 1, ImPlotInfLinesFlags_Horizontal);
+                ImPlot::PlotInfLines("Ultimate Strength", &utsMPa, 1, ImPlotInfLinesFlags_Horizontal);
+                
+                // Add annotations for key regions
+                // Calculate Young's modulus slope point (elastic region)
+                float elasticStrain = 0.1f; // 0.1% strain
+                float elasticStress = (material.youngsModulus * elasticStrain / 100.0f) / 1e6f; // Convert to MPa
+                
+                // Annotate key points
+                ImPlot::Annotation(elasticStrain, elasticStress, ImVec4(0.2f, 1.0f, 0.2f, 1.0f), 
+                                  ImVec2(20, -30), false, "Elastic Region\n(E = %.0f GPa)", 
+                                  material.youngsModulus / 1e9f);
+                
+                // Yield point annotation - move below the curve
+                float yieldStrain = yieldMPa / (material.youngsModulus / 1e6f) * 100.0f; // Convert to %
+                ImPlot::Annotation(yieldStrain, yieldMPa, ImVec4(1.0f, 1.0f, 0.0f, 1.0f), 
+                                  ImVec2(20, 30), false, "Yield Point\n(%.0f MPa)", yieldMPa);
+                
+                // UTS annotation
+                float utsStrain = yieldStrain + 5.0f; // Position label at 5% strain past yield
+                ImPlot::Annotation(utsStrain, utsMPa, ImVec4(1.0f, 0.5f, 0.0f, 1.0f), 
+                                  ImVec2(0, -20), false, "Ultimate Strength\n(%.0f MPa)", utsMPa);
+                
+                // Strain hardening region label
+                float hardeningStrain = (yieldStrain + utsStrain) / 2.0f;
+                float hardeningStress = (yieldMPa + utsMPa) / 2.0f;
+                ImPlot::Annotation(hardeningStrain, hardeningStress, ImVec4(0.5f, 0.5f, 1.0f, 1.0f), 
+                                  ImVec2(10, 0), false, "Strain Hardening");
+                
+                // Necking region (if fractured)
+                if (materialState.isFractured && materialState.damageParameter > 0.1) {
+                    float neckingStrain = utsStrain + 2.0f;
+                    float neckingStress = utsMPa * 0.7f;
+                    ImPlot::Annotation(neckingStrain, neckingStress, ImVec4(1.0f, 0.2f, 0.2f, 1.0f), 
+                                      ImVec2(10, 10), false, "Necking");
+                }
             }
             ImPlot::EndPlot();
         }
@@ -336,7 +396,7 @@ private:
             double elasticStrainLimit = materialState.currentYieldStrength / material.youngsModulus;
 
             if (strain <= elasticStrainLimit) {
-                // Elastic region
+                // Elastic region (linear)
                 materialState.elasticStrain = strain;
                 materialState.plasticStrain = 0.0;
                 stress = strain * material.youngsModulus;
@@ -345,47 +405,74 @@ private:
                 materialState.elasticStrain = elasticStrainLimit;
                 materialState.plasticStrain = strain - elasticStrainLimit;
                 
-                // Simplified linear work hardening
-                double strainRange = 0.1; // 10% strain range
+                // Strain hardening region (before UTS)
+                double strainRange = 0.1; // 10% strain range for hardening
                 double strengthDiff = material.ultimateTensileStrength - material.yieldStrength;
                 double hardening = (strainRange > 1e-10) ? (strengthDiff / strainRange) : 0.0;
                 stress = materialState.currentYieldStrength + hardening * materialState.plasticStrain;
                 
                 // Clamp stress to reasonable values
                 stress = std::clamp(stress, -1e10, 1e10);
-                materialState.currentYieldStrength = stress;
-
-                if (stress > material.ultimateTensileStrength) {
+                
+                // Check if we've reached UTS (start of necking)
+                if (stress >= material.ultimateTensileStrength) {
                     materialState.isFractured = true;
-                    double denominator = material.ultimateTensileStrength * 0.1;
-                    materialState.damageParameter = (denominator > 1e-10) ? 
-                        ((stress - material.ultimateTensileStrength) / denominator) : 1.0;
-                    materialState.damageParameter = std::clamp(materialState.damageParameter, 0.0, 10.0);
+                    
+                    // Necking behavior: stress decreases after UTS
+                    // Model necking as stress reduction proportional to additional strain
+                    double strainBeyondUTS = materialState.plasticStrain - (strainRange);
+                    if (strainBeyondUTS > 0) {
+                        // Necking: stress decreases linearly
+                        double neckingRate = material.ultimateTensileStrength * 2.0; // Stress drop rate
+                        stress = material.ultimateTensileStrength - neckingRate * strainBeyondUTS;
+                        
+                        // Don't let stress go negative
+                        stress = std::max(stress, 0.0);
+                        
+                        // Update damage parameter
+                        double denominator = material.ultimateTensileStrength * 0.1;
+                        materialState.damageParameter = (denominator > 1e-10) ? 
+                            (strainBeyondUTS / 0.05) : 1.0; // Normalize to 0-1
+                        materialState.damageParameter = std::clamp(materialState.damageParameter, 0.0, 1.0);
+                    } else {
+                        // At UTS peak
+                        stress = material.ultimateTensileStrength;
+                        materialState.damageParameter = 0.0;
+                    }
+                    
                     if (materialState.crackTips.empty()) {
                         materialState.crackTips.push_back(glm::vec3(0,0,0));
                     }
+                } else {
+                    // Still in strain hardening region
+                    materialState.currentYieldStrength = stress;
                 }
             }
         }
     }
     
     void performTensileTest() {
-        // Automated tensile test - gradually increase force
-        static bool testRunning = false;
-        static float testForce = 0.0f;
-        
-        if (!testRunning) {
-            testRunning = true;
-            testForce = 0.0f;
-        }
-        
-        testForce += 1000.0f; // Increase by 1kN per step
-        setForce(testForce);
-        
-        // Stop test if material fractures
-        if (materialState.isFractured) {
-            testRunning = false;
-            testForce = 0.0f;
+        // Start automated tensile test
+        tensileTestRunning = true;
+        tensileTestForce = 0.0f;
+        resetMaterial(); // Clear previous data
+    }
+    
+    void update(float deltaTime) override {
+        // Run automated tensile test if active
+        if (tensileTestRunning) {
+            tensileTestForce += 50000.0f * deltaTime; // Increase by 50kN per second (faster test)
+            setForce(tensileTestForce);
+            
+            // Stop test if material fractures or stress drops significantly (necking complete)
+            if (materialState.isFractured && stress < material.ultimateTensileStrength * 0.3) {
+                tensileTestRunning = false;
+            }
+            
+            // Safety limit
+            if (tensileTestForce > 1e7f) { // 10 MN max
+                tensileTestRunning = false;
+            }
         }
     }
     

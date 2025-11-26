@@ -6,7 +6,9 @@
 
 ### 🏗️ Solid Mechanics
 *   **Elastic Deformation**: Visualize stress and strain using Hooke's Law
-*   **Plasticity & Fracture**: Simulate permanent deformation and material failure
+*   **Plasticity & Fracture**: Simulate permanent deformation, necking, and material failure
+*   **Realistic Stress-Strain**: Complete curve with Yield Point, Strain Hardening, UTS, and Necking
+*   **Automated Tensile Test**: Run monotonic loading tests with real-time plotting
 *   **FEM Solver**: Finite Element Method with truss elements and dynamic relaxation
 *   **Non-linear Materials**: Yield strength, strain hardening, and fracture mechanics
 
@@ -34,7 +36,7 @@
 
 ### 🎨 Visualization & Analysis
 *   **Vector Fields**: Professional arrow glyphs with magnitude-based coloring
-*   **Real-time Graphs**: Stress-strain curves, displacement history, flow analysis
+*   **Real-time Graphs**: Annotated stress-strain curves, displacement history, flow analysis
 *   **VTK Export**: Export to Paraview for advanced visualization (.vts, .vtu)
 *   **Image Export**: Save plots and visualizations as PNG
 *   **3D Rendering**: OpenGL with camera controls (pan, zoom, orbit, reset)
@@ -54,6 +56,7 @@
 *   **Math**: GLM
 *   **Windowing**: GLFW, GLEW
 *   **Export**: VTK XML format, stb_image_write
+*   **Testing**: Custom C++ Test Suite
 
 ## 🚀 Building and Running
 
@@ -155,11 +158,12 @@ Modular design with clean separation of concerns:
 *   Interactive UI
 *   12 Simulation Scenarios
 
-### Phase 2 (16% Complete) 🚧
+### Phase 2 (20% Complete) 🚧
 
 #### Completed ✅
 *   **Architecture Refactor**: Modular ISolver interface
 *   **FEM Solver**: Truss elements with plasticity
+*   **Advanced Solid Mechanics**: Necking, Fracture, Tensile Tests
 *   **CFD Solver**: Navier-Stokes (Stable Fluids)
 *   **Turbulence Models**: k-ε with Reynolds number
 *   **Real Gas Equations**: Van der Waals, compressibility
@@ -168,6 +172,7 @@ Modular design with clean separation of concerns:
 *   **Custom Material Editor**: UI-based material creation
 *   **Enhanced Controls**: Camera and plot interaction
 *   **Data Persistence**: JSON save/load
+*   **Automated Testing**: Comprehensive stability suite
 
 #### In Progress 🚧
 *   Thermal-Structural Coupling
