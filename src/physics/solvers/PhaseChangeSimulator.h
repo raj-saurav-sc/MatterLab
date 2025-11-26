@@ -1,6 +1,5 @@
-#pragma once
-
 #include "../ISolver.h"
+#include "../../core/RandomGenerator.h"
 #include <imgui.h>
 #include "implot.h"
 #include <GL/glew.h>
@@ -151,9 +150,9 @@ public:
             glColor3f(material.color.x, material.color.y, material.color.z);
             for (int i = 0; i < 50; ++i) {
                 glVertex3f(
-                    (rand()%100)/50.0f - 1.0f,
-                    (rand()%100)/50.0f - 1.0f,
-                    (rand()%100)/50.0f - 1.0f
+                    RandomGenerator::randFloat(-1.0f, 1.0f),
+                    RandomGenerator::randFloat(-1.0f, 1.0f),
+                    RandomGenerator::randFloat(-1.0f, 1.0f)
                 );
             }
             glEnd();

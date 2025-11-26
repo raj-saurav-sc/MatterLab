@@ -1,6 +1,5 @@
-#pragma once
-
 #include "../ISolver.h"
+#include "../../core/RandomGenerator.h"
 #include <imgui.h>
 #include "implot.h"
 #include <GL/glew.h>
@@ -80,8 +79,8 @@ public:
     }
     
     void addRandomPlanet() {
-        float r = 5.0f + (rand() % 150) / 10.0f;
-        float theta = (rand() % 360) * M_PI / 180.0f;
+        float r = RandomGenerator::randFloat(5.0f, 20.0f);
+        float theta = RandomGenerator::randFloat(0.0f, 2.0f * M_PI);
         float x = r * cos(theta);
         float z = r * sin(theta);
         
@@ -94,9 +93,11 @@ public:
         bodies.push_back({
             glm::vec3(x, 0, z),
             glm::vec3(vx, 0, vz),
-            1.0f + (rand() % 50) / 10.0f,
-            0.2f + (rand() % 30) / 100.0f,
-            glm::vec3((rand()%10)/10.0f, (rand()%10)/10.0f, (rand()%10)/10.0f),
+            RandomGenerator::randFloat(1.0f, 6.0f),
+            RandomGenerator::randFloat(0.2f, 0.5f),
+            glm::vec3(RandomGenerator::randFloat(0.0f, 1.0f), 
+                      RandomGenerator::randFloat(0.0f, 1.0f), 
+                      RandomGenerator::randFloat(0.0f, 1.0f)),
             {}
         });
     }

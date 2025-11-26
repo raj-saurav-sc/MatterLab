@@ -1,6 +1,5 @@
-#pragma once
-
 #include "../ISolver.h"
+#include "../../core/RandomGenerator.h"
 #include <imgui.h>
 #include <GL/glew.h>
 #include <vector>
@@ -47,9 +46,9 @@ public:
     void spawnParticle() {
         Particle p;
         p.position = glm::vec3(
-            (rand() % 100) / 50.0f - 1.0f, // x: -1 to 1
-            -1.0f,                         // y: bottom
-            (rand() % 100) / 50.0f - 1.0f  // z: -1 to 1
+            RandomGenerator::randFloat(-1.0f, 1.0f), // x: -1 to 1
+            -1.0f,                                    // y: bottom
+            RandomGenerator::randFloat(-1.0f, 1.0f)  // z: -1 to 1
         );
         p.velocity = glm::vec3(0,0,0);
         p.temperature = 0.0f; // Start cold
@@ -74,8 +73,8 @@ public:
             p.velocity.y -= 0.5f * deltaTime; // Gravity/Drag
             
             // Turbulence/Diffusion
-            p.velocity.x += ((rand()%100)/50.0f - 1.0f) * 0.1f * deltaTime;
-            p.velocity.z += ((rand()%100)/50.0f - 1.0f) * 0.1f * deltaTime;
+            p.velocity.x += RandomGenerator::randFloat(-0.1f, 0.1f) * deltaTime;
+            p.velocity.z += RandomGenerator::randFloat(-0.1f, 0.1f) * deltaTime;
             
             p.position += p.velocity * deltaTime;
             

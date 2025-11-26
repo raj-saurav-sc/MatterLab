@@ -1,6 +1,5 @@
-#pragma once
-
 #include "../ISolver.h"
+#include "../../core/RandomGenerator.h"
 #include <imgui.h>
 #include "implot.h"
 #include <GL/glew.h>
@@ -55,14 +54,14 @@ public:
         // Initialize particles
         for (int i = 0; i < 100; ++i) {
             particles.push_back(glm::vec3(
-                (rand() % 100) / 50.0f - 1.0f,
-                (rand() % 100) / 50.0f - 1.0f,
-                (rand() % 100) / 50.0f - 1.0f
+                RandomGenerator::randFloat(-1.0f, 1.0f),
+                RandomGenerator::randFloat(-1.0f, 1.0f),
+                RandomGenerator::randFloat(-1.0f, 1.0f)
             ));
             velocities.push_back(glm::vec3(
-                (rand() % 100) / 100.0f - 0.5f,
-                (rand() % 100) / 100.0f - 0.5f,
-                (rand() % 100) / 100.0f - 0.5f
+                RandomGenerator::randFloat(-0.5f, 0.5f),
+                RandomGenerator::randFloat(-0.5f, 0.5f),
+                RandomGenerator::randFloat(-0.5f, 0.5f)
             ));
         }
         calculate();

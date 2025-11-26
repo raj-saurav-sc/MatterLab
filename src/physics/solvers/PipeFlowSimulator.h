@@ -1,6 +1,5 @@
-#pragma once
-
 #include "../ISolver.h"
+#include "../../core/RandomGenerator.h"
 #include <imgui.h>
 #include "implot.h"
 #include <GL/glew.h>
@@ -43,9 +42,9 @@ public:
     void resetParticles() {
         particles.clear();
         for (int i = 0; i < 200; ++i) {
-            float r = (float)sqrt((rand() % 100) / 100.0f) * pipeRadius;
-            float theta = (rand() % 360) * M_PI / 180.0f;
-            float z = (rand() % 100) / 100.0f * pipeLength - pipeLength/2;
+            float r = std::sqrt(RandomGenerator::randFloat(0.0f, 1.0f)) * pipeRadius;
+            float theta = RandomGenerator::randFloat(0.0f, 2.0f * M_PI);
+            float z = RandomGenerator::randFloat(-pipeLength/2, pipeLength/2);
             particles.push_back(glm::vec3(r * cos(theta), r * sin(theta), z));
         }
     }

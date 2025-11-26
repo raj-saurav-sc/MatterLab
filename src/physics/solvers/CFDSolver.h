@@ -1,12 +1,16 @@
+```cpp
 #pragma once
 
 #include "../ISolver.h"
+#include "../../core/RandomGenerator.h"
 #include "../../visualization/VectorField.h"
 #include "../../io/VTKExporter.h"
+#include "../Material.h"
 #include <vector>
 #include <cmath>
 #include <algorithm>
 #include <imgui.h>
+#include "implot.h"
 #include <GL/glew.h>
 
 #define IX(x, y) ((x) + (N + 2) * (y))
@@ -397,14 +401,13 @@ private:
             
             // For now, let's just add to the center if mouse is pressed, 
             // or implement a proper raycast later.
-            // Actually, let's use a fixed interaction for MVP:
             // Add density/velocity at center + some noise
             
-            int i = N/2 + (rand() % 5 - 2);
-            int j = N/2 + (rand() % 5 - 2);
+            int i = N/2 + RandomGenerator::randInt(-2, 2);
+            int j = N/2 + RandomGenerator::randInt(-2, 2);
             
-            float fx = (rand() % 100 - 50) / 10.0f;
-            float fy = (rand() % 100 - 50) / 10.0f;
+            float fx = RandomGenerator::randFloat(-5.0f, 5.0f);
+            float fy = RandomGenerator::randFloat(-5.0f, 5.0f);
             
             add_source(N, dens.data(), &source, dt); // Add density everywhere? No.
             
