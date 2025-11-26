@@ -1,40 +1,64 @@
 # MatterLab: Universal Material & Fluid Simulator
 
-**MatterLab** is a multi-tiered physics simulator designed for both educational exploration and scientific visualization. It allows users to interact with various states of matter and physical phenomena in a real-time 3D environment.
+**MatterLab** is a multi-tiered physics simulator designed for both educational exploration and scientific research. It allows users to interact with various states of matter and physical phenomena in a real-time 3D environment with advanced visualization and analysis tools.
 
 ## 🌟 Features
 
 ### 🏗️ Solid Mechanics
-*   **Elastic Deformation**: Visualize stress and strain on materials using Hooke's Law.
-*   **Plasticity & Fracture**: Simulate permanent deformation and material failure under high stress.
+*   **Elastic Deformation**: Visualize stress and strain using Hooke's Law
+*   **Plasticity & Fracture**: Simulate permanent deformation and material failure
+*   **FEM Solver**: Finite Element Method with truss elements and dynamic relaxation
+*   **Non-linear Materials**: Yield strength, strain hardening, and fracture mechanics
 
 ### 💧 Fluid Mechanics
-*   **Buoyancy**: Drop objects into fluids and watch them float or sink based on density (Archimedes' Principle).
-*   **Laminar Pipe Flow**: Visualize Poiseuille's Law with a parabolic velocity profile.
+*   **Buoyancy**: Archimedes' Principle simulation
+*   **Laminar Pipe Flow**: Poiseuille's Law with parabolic velocity profiles
+*   **Advanced CFD**: Navier-Stokes solver using Stable Fluids algorithm
+*   **Turbulence Modeling**: k-ε turbulence model with Reynolds number calculation
+*   **Flow Regime Detection**: Automatic laminar/transitional/turbulent classification
 
 ### 💨 Gas Dynamics
-*   **Ideal Gas Law**: Interact with pressure, volume, and temperature ($PV = nRT$) in a confined container.
+*   **Ideal Gas Law**: Interactive PV = nRT simulation
+*   **Real Gas Equations**: Van der Waals equation for high-pressure accuracy
+*   **Compressibility Factor**: Z-factor calculation and visualization
+*   **Gas-Specific Constants**: Air, CO₂, Helium with accurate properties
 
 ### 🔥 Thermodynamics & Phase Changes
-*   **Phase Transitions**: Watch ice melt to water and boil to steam as you add heat.
-*   **Thermal Conductivity**: Visualize heat propagation through a 1D rod (Heat Equation).
+*   **Phase Transitions**: Ice → Water → Steam with latent heat
+*   **Thermal Conductivity**: Heat equation solver (1D)
+*   **Convection**: Natural and forced convection simulation
 
 ### 🌌 Astrophysics & Motion
-*   **Orbital Mechanics**: Create solar systems with N-body gravity simulation.
-*   **Projectile Motion**: Launch objects and observe the effects of gravity and air resistance.
+*   **Orbital Mechanics**: N-body gravity simulation
+*   **Projectile Motion**: Ballistic trajectories with air resistance
+
+### 🎨 Visualization & Analysis
+*   **Vector Fields**: Professional arrow glyphs with magnitude-based coloring
+*   **Real-time Graphs**: Stress-strain curves, displacement history, flow analysis
+*   **VTK Export**: Export to Paraview for advanced visualization (.vts, .vtu)
+*   **Image Export**: Save plots and visualizations as PNG
+*   **3D Rendering**: OpenGL with camera controls (pan, zoom, orbit, reset)
+
+### 🛠️ User Interface
+*   **Material Database**: 10 preset materials (Steel, Aluminum, Water, Air, etc.)
+*   **Custom Material Editor**: Create materials without coding
+*   **Preset Templates**: Metal, Fluid, Gas quick-start
+*   **Scientific Mode**: Detailed equations and parameters
+*   **Project Save/Load**: JSON-based session persistence
 
 ## 🛠️ Technology Stack
-*   **Language**: C++
-*   **Rendering**: OpenGL (Legacy/Fixed Function for simplicity)
+*   **Language**: C++17
+*   **Rendering**: OpenGL 3.0
 *   **UI**: [Dear ImGui](https://github.com/ocornut/imgui)
 *   **Plotting**: [ImPlot](https://github.com/epezent/implot)
 *   **Math**: GLM
 *   **Windowing**: GLFW, GLEW
+*   **Export**: VTK XML format, stb_image_write
 
 ## 🚀 Building and Running
 
 ### Prerequisites
-*   C++ Compiler (GCC/Clang/MSVC)
+*   C++ Compiler (GCC/Clang/MSVC with C++17 support)
 *   CMake (3.10+)
 *   OpenGL Libraries
 *   GLFW3
@@ -51,7 +75,7 @@ brew install cmake glfw glew glm
 ```
 
 ### Windows (vcpkg)
-1.  Install [vcpkg](https://github.com/microsoft/vcpkg).
+1.  Install [vcpkg](https://github.com/microsoft/vcpkg)
 2.  Install dependencies:
     ```powershell
     vcpkg install glfw3 glew glm opengl
@@ -73,7 +97,7 @@ git submodule update --init --recursive
 # Create build directory
 cmake -B build -S .
 
-# Build the project (Assets are automatically copied to the build directory)
+# Build the project
 cmake --build build
 
 # Run the simulator
@@ -84,20 +108,44 @@ cmake --build build
 
 ### Camera
 *   **Orbit**: Right Mouse Button Drag
-*   **Pan**: Middle Mouse Button Drag
-*   **Zoom**: Mouse Scroll Wheel
-*   **UI Buttons**: Use the on-screen controls in the "Camera Controls" panel.
+*   **Pan**: Left/Middle Mouse Button Drag or Arrow Keys
+*   **Zoom**: Mouse Scroll Wheel or W/S keys
+*   **Reset**: R key or "Reset View" button
 
 ### Simulation
-*   **Select Scenario**: Use the dropdown menu to switch between simulations (Solids, Fluids, Orbit, etc.).
-*   **Parameters**: Adjust sliders to change mass, gravity, viscosity, temperature, etc.
-*   **Modes**: Toggle "Scientific Mode" for detailed equations or "Educational Mode" for simple explanations.
+*   **Select Scenario**: 12 scenarios including FEM, CFD, Gas Dynamics
+*   **Material Selection**: Choose from 10 presets or create custom materials
+*   **Parameters**: Real-time sliders for all physics properties
+*   **Export**: VTK button for Paraview, Save Image for plots
+
+### Advanced Features
+*   **Turbulence Toggle**: Enable k-ε model for CFD
+*   **Real Gas Mode**: Switch between ideal and Van der Waals
+*   **Vector Visualization**: Adjust scale and density
+*   **Material Editor**: Create custom materials with all properties
 
 ## 🏗️ Architecture
-The project has been refactored into a modular architecture to support advanced features:
-*   **Core**: Handles application lifecycle, windowing, and input (`src/core`).
-*   **Physics**: Defines the `ISolver` interface and material system (`src/physics`).
-*   **Solvers**: Individual simulation modules (`src/physics/solvers`) that can be easily extended.
+Modular design with clean separation of concerns:
+*   **Core** (`src/core`): Application lifecycle, windowing, camera
+*   **Physics** (`src/physics`): ISolver interface, Material system
+*   **Solvers** (`src/physics/solvers`): 12 independent simulation modules
+*   **Visualization** (`src/visualization`): Vector fields, rendering utilities
+*   **IO** (`src/io`): VTK export, image capture
+
+## 📊 Simulation Scenarios
+
+1. **Solid Mechanics** - Hooke's Law deformation
+2. **Fluid Mechanics** - Buoyancy and Archimedes
+3. **Gas Dynamics** - Ideal/Real gas with Van der Waals
+4. **Phase Change** - Melting and boiling
+5. **Thermal Conductivity** - Heat diffusion
+6. **Projectile Motion** - Ballistic trajectories
+7. **Orbital Mechanics** - N-body gravity
+8. **Pipe Flow** - Poiseuille flow
+9. **Fluid Convection** - Natural convection
+10. **Coupled Heat Transfer** - Thermal-fluid interaction
+11. **Advanced FEM** - Truss solver with plasticity
+12. **Advanced CFD** - Navier-Stokes with turbulence
 
 ## 🗺️ Roadmap
 
@@ -105,15 +153,41 @@ The project has been refactored into a modular architecture to support advanced 
 *   Core Physics Engines (Solids, Fluids, Gases)
 *   Basic Visualization
 *   Interactive UI
+*   12 Simulation Scenarios
 
-### Phase 2 (In Progress) 🚧
-*   **Architecture Refactor** (Completed) ✅
-    *   Modular `ISolver` interface
-    *   Core/Physics separation
-*   Advanced Fluid Dynamics (Convection, Turbulence)
-*   Coupled Heat Transfer (Solid-Fluid interaction)
-*   Save/Load Simulation States
-*   Data Export (CSV, Images)
+### Phase 2 (16% Complete) 🚧
+
+#### Completed ✅
+*   **Architecture Refactor**: Modular ISolver interface
+*   **FEM Solver**: Truss elements with plasticity
+*   **CFD Solver**: Navier-Stokes (Stable Fluids)
+*   **Turbulence Models**: k-ε with Reynolds number
+*   **Real Gas Equations**: Van der Waals, compressibility
+*   **Vector Field Visualization**: Arrow glyphs, magnitude coloring
+*   **VTK Export**: Paraview integration (.vts, .vtu)
+*   **Custom Material Editor**: UI-based material creation
+*   **Enhanced Controls**: Camera and plot interaction
+*   **Data Persistence**: JSON save/load
+
+#### In Progress 🚧
+*   Thermal-Structural Coupling
+*   Shock Wave Simulation
+*   Mesh Visualization
+*   Contour Plots
+*   Parametric Studies
+
+### Phase 3 (Planned) 📋
+*   GPU Acceleration (CUDA/OpenCL)
+*   Parallel Computing (OpenMP)
+*   Advanced Mesh Generation
+*   Topology Optimization
+*   AI Material Prediction
 
 ## 📄 License
 This project is open source.
+
+## 🙏 Acknowledgments
+*   Dear ImGui for the UI framework
+*   ImPlot for scientific plotting
+*   Jos Stam for the Stable Fluids algorithm
+*   VTK community for visualization standards

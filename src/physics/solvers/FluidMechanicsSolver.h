@@ -25,6 +25,21 @@ private:
 public:
     std::string getName() const override { return "Fluid Mechanics"; }
 
+    json saveState() const override {
+        json state;
+        state["objectVolume"] = objectVolume;
+        state["objectRadius"] = objectRadius;
+        state["objectMaterial"] = object.name;
+        state["fluidMaterial"] = fluid.name;
+        return state;
+    }
+
+    void loadState(const json& state) override {
+        if (state.contains("objectVolume")) objectVolume = state["objectVolume"];
+        if (state.contains("objectRadius")) objectRadius = state["objectRadius"];
+        calculate();
+    }
+
     void setObject(const Material& obj) { object = obj; }
     void setFluid(const Material& fl) { fluid = fl; }
     void setObjectProperties(float vol, float rad) { objectVolume = vol; objectRadius = rad; }

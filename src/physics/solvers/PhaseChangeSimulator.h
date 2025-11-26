@@ -25,6 +25,20 @@ private:
 public:
     std::string getName() const override { return "Phase Change"; }
 
+    json saveState() const override {
+        json state;
+        state["temperature"] = temperature;
+        state["heatInput"] = heatInput;
+        state["materialName"] = material.name;
+        return state;
+    }
+
+    void loadState(const json& state) override {
+        if (state.contains("temperature")) temperature = state["temperature"];
+        if (state.contains("heatInput")) heatInput = state["heatInput"];
+        calculatePhase();
+    }
+
     void setMaterial(const Material& mat) override { material = mat; }
     void setTemperature(float t) { temperature = t; calculatePhase(); }
     

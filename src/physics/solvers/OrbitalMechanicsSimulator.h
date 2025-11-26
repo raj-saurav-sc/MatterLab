@@ -26,6 +26,24 @@ private:
 public:
     std::string getName() const override { return "Orbital Mechanics"; }
 
+    json saveState() const override {
+        json state;
+        state["timeScale"] = timeScale;
+        state["G"] = G;
+        state["bodyCount"] = bodies.size();
+        // Could save individual bodies too, but for now just params
+        return state;
+    }
+
+    void loadState(const json& state) override {
+        if (state.contains("timeScale")) timeScale = state["timeScale"];
+        if (state.contains("G")) G = state["G"];
+        // Reset system to apply defaults if needed, or load bodies if we implemented that
+        if (state.contains("bodyCount") && state["bodyCount"] == 3) {
+             resetSolarSystem();
+        }
+    }
+
     void initialize() override {
         resetSolarSystem();
     }

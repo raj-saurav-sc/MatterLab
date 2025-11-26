@@ -34,6 +34,25 @@ private:
 public:
     std::string getName() const override { return "Solid Mechanics"; }
 
+    json saveState() const override {
+        json state;
+        state["appliedForce"] = appliedForce;
+        state["length"] = length;
+        state["area"] = area;
+        state["materialName"] = material.name;
+        return state;
+    }
+
+    void loadState(const json& state) override {
+        if (state.contains("appliedForce")) appliedForce = state["appliedForce"];
+        if (state.contains("length")) length = state["length"];
+        if (state.contains("area")) area = state["area"];
+        // Material loading will be handled by Application setting the material first, 
+        // or we need access to DB here. For now, we assume material is set externally 
+        // or we just save parameters.
+        calculate();
+    }
+
     void setMaterial(const Material& mat) override { 
         material = mat; 
         materialState = MaterialState(); // Reset state when changing materials
@@ -156,14 +175,22 @@ public:
     void renderGraph() override {
         const float plot_height = (ImGui::GetContentRegionAvail().y - ImGui::GetStyle().ItemSpacing.y) * 0.5f;
         const ImVec2 plot_size(-1, plot_height > 1.0f ? plot_height : 1.0f);
-        if (ImPlot::BeginPlot("Advanced Stress-Strain Curve", plot_size)) {
+        
+        // Enable pan/zoom with ImPlot flags
+        ImPlotFlags flags = ImPlotFlags_NoTitle;
+        
+        if (ImPlot::BeginPlot("Advanced Stress-Strain Curve", plot_size, flags)) {
+            ImPlot::SetupAxes("Strain (%)", "Stress (MPa)");
+            ImPlot::SetupAxisLimits(ImAxis_X1, 0, 10, ImPlotCond_Once);
+            ImPlot::SetupAxisLimits(ImAxis_Y1, 0, 500, ImPlotCond_Once);
+            
             if (!stressStrainData.empty()) {
                 std::vector<float> strainVec, stressVec;
                 for (const auto& point : stressStrainData) {
                     strainVec.push_back(point.x);
                     stressVec.push_back(point.y);
                 }
-                ImPlot::PlotLine("Stress vs Strain", strainVec.data(), stressVec.data(), strainVec.size());
+                ImPlot::PlotLine("Stress-Strain", strainVec.data(), stressVec.data(), strainVec.size());
                 
                 // Add material property lines
                 // Yield strength line
@@ -176,18 +203,24 @@ public:
         ImVec2 plotMin = ImGui::GetItemRectMin();
         ImVec2 plotMax = ImGui::GetItemRectMax();
         
-        if (ImGui::Button("Export to CSV")) {
-            // CSV export logic will be handled by a utility or passed up
-            // For now, we'll just print to console or implement a simple version
-            // Ideally, we inject a DataExporter dependency
+        if (ImGui::Button("Save Image##1")) {
+            requestPlotCapture("solid_mechanics_plot.png", plotMin, plotMax);
         }
         ImGui::SameLine();
-        if (ImGui::Button("Save Image")) {
-            requestPlotCapture("solid_mechanics_plot.png", plotMin, plotMax);
+        if (ImGui::Button("Fit##1")) {
+            ImPlot::SetNextAxesToFit();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Reset Axes##1")) {
+            // This will be handled by ImPlot's context menu or we can force it
         }
         
         // Loading history graph
-        if (ImPlot::BeginPlot("Loading History", plot_size)) {
+        if (ImPlot::BeginPlot("Loading History", plot_size, flags)) {
+            ImPlot::SetupAxes("Time (s)", "Force (kN)");
+            ImPlot::SetupAxisLimits(ImAxis_X1, 0, 10, ImPlotCond_Once);
+            ImPlot::SetupAxisLimits(ImAxis_Y1, -100, 100, ImPlotCond_Once);
+            
             if (!loadingHistory.empty()) {
                 std::vector<float> timeVec, forceVec;
                 for (const auto& point : loadingHistory) {
@@ -197,6 +230,16 @@ public:
                 ImPlot::PlotLine("Applied Force (kN)", timeVec.data(), forceVec.data(), timeVec.size());
             }
             ImPlot::EndPlot();
+        }
+        
+        if (ImGui::Button("Save Image##2")) {
+            ImVec2 plotMin2 = ImGui::GetItemRectMin();
+            ImVec2 plotMax2 = ImGui::GetItemRectMax();
+            requestPlotCapture("loading_history_plot.png", plotMin2, plotMax2);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Fit##2")) {
+            ImPlot::SetNextAxesToFit();
         }
     }
     

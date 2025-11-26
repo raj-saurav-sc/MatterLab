@@ -17,8 +17,26 @@ private:
     
     std::vector<glm::vec3> trail;
     
+    // Parameters (need to be members to save)
+    float launchSpeed = 15.0f;
+    float launchAngle = 45.0f;
+    
 public:
     std::string getName() const override { return "Projectile Motion"; }
+
+    json saveState() const override {
+        json state;
+        state["launchSpeed"] = launchSpeed;
+        state["launchAngle"] = launchAngle;
+        state["gravity"] = gravity;
+        return state;
+    }
+
+    void loadState(const json& state) override {
+        if (state.contains("launchSpeed")) launchSpeed = state["launchSpeed"];
+        if (state.contains("launchAngle")) launchAngle = state["launchAngle"];
+        if (state.contains("gravity")) gravity = state["gravity"];
+    }
 
     void update(float deltaTime) override {
         if (isSimulating && position.y >= 0) {
@@ -37,9 +55,6 @@ public:
     void renderUI() override {
         ImGui::Text("Projectile Motion");
         ImGui::Separator();
-        
-        static float launchSpeed = 15.0f;
-        static float launchAngle = 45.0f;
         
         ImGui::SliderFloat("Speed (m/s)", &launchSpeed, 1.0f, 100.0f);
         ImGui::SliderFloat("Angle (deg)", &launchAngle, 0.0f, 90.0f);

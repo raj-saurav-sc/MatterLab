@@ -23,6 +23,18 @@ private:
 public:
     std::string getName() const override { return "Coupled Heat Transfer"; }
 
+    json saveState() const override {
+        json state;
+        state["fluidTemp"] = fluidTemp;
+        state["h_coeff"] = h_coeff;
+        return state;
+    }
+
+    void loadState(const json& state) override {
+        if (state.contains("fluidTemp")) fluidTemp = state["fluidTemp"];
+        if (state.contains("h_coeff")) h_coeff = state["h_coeff"];
+    }
+
     void initialize() override {
         resetSimulation();
     }

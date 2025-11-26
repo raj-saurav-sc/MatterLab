@@ -20,6 +20,20 @@ private:
 public:
     std::string getName() const override { return "Pipe Flow"; }
 
+    json saveState() const override {
+        json state;
+        state["pipeRadius"] = pipeRadius;
+        state["pressureDiff"] = pressureDiff;
+        state["fluidName"] = fluid.name;
+        return state;
+    }
+
+    void loadState(const json& state) override {
+        if (state.contains("pipeRadius")) pipeRadius = state["pipeRadius"];
+        if (state.contains("pressureDiff")) pressureDiff = state["pressureDiff"];
+        initialize();
+    }
+
     void setFluid(const Material& f) { fluid = f; }
     
     void initialize() override {

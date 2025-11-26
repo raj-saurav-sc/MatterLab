@@ -23,8 +23,19 @@ imgui.ini
 #Visualizations
 *.csv
 *.png
-*.jpg
-*.jpeg
 *.bmp
 *.tiff
 *.webp
+
+# Project files
+*.json
+
+# VTK Export files
+*.vts
+*.vtu
+*.vtk
+
+# Image exports
+*.png
+*.jpg
+*.jpeg

@@ -26,6 +26,21 @@ private:
 public:
     std::string getName() const override { return "Thermal Conductivity"; }
 
+    json saveState() const override {
+        json state;
+        state["leftTemp"] = leftTemp;
+        state["rightTemp"] = rightTemp;
+        state["thermalConductivity"] = thermalConductivity;
+        return state;
+    }
+
+    void loadState(const json& state) override {
+        if (state.contains("leftTemp")) leftTemp = state["leftTemp"];
+        if (state.contains("rightTemp")) rightTemp = state["rightTemp"];
+        if (state.contains("thermalConductivity")) thermalConductivity = state["thermalConductivity"];
+        initialize(); // Reset with new params
+    }
+
     void initialize() override {
         nodes.clear();
         for (int i = 0; i < numNodes; ++i) {

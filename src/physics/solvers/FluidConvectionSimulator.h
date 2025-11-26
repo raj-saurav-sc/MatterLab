@@ -23,6 +23,16 @@ private:
 public:
     std::string getName() const override { return "Fluid Convection"; }
 
+    json saveState() const override {
+        json state;
+        state["buoyancyFactor"] = buoyancyFactor;
+        return state;
+    }
+
+    void loadState(const json& state) override {
+        if (state.contains("buoyancyFactor")) buoyancyFactor = state["buoyancyFactor"];
+    }
+
     void initialize() override {
         resetSimulation();
     }

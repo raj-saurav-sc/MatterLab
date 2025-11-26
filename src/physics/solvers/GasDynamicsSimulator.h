@@ -15,6 +15,11 @@ private:
     float temperature = 300.0f; // K
     float moles = 1.0f;         // mol
     
+    // Real gas mode
+    bool useRealGas = false;
+    float compressibilityFactor = 1.0f;
+    float idealPressure = 101325.0f;
+    
     // Visualization
     std::vector<glm::vec3> particles;
     std::vector<glm::vec3> velocities;
@@ -22,9 +27,26 @@ private:
     // Graph data
     std::vector<glm::vec2> pvData;
     std::vector<glm::vec2> tvData;
+    std::vector<glm::vec2> zData;  // Compressibility factor vs pressure
     
 public:
     std::string getName() const override { return "Gas Dynamics"; }
+
+    json saveState() const override {
+        json state;
+        state["temperature"] = temperature;
+        state["volume"] = volume;
+        state["moles"] = moles;
+        state["gasName"] = gas.name;
+        return state;
+    }
+
+    void loadState(const json& state) override {
+        if (state.contains("temperature")) temperature = state["temperature"];
+        if (state.contains("volume")) volume = state["volume"];
+        if (state.contains("moles")) moles = state["moles"];
+        calculate();
+    }
 
     void setGas(const Material& g) { gas = g; }
     void setTemperature(float t) { temperature = t; calculate(); }
@@ -47,17 +69,38 @@ public:
     }
     
     void calculate() {
-        // Ideal Gas Law: PV = nRT
-        // P = nRT / V
         const float R = 8.314f;
-        pressure = (moles * R * temperature) / volume;
+        
+        // Calculate ideal gas pressure first
+        idealPressure = (moles * R * temperature) / volume;
+        
+        if (useRealGas && (gas.vanDerWaalsA > 0 || gas.vanDerWaalsB > 0)) {
+            // Van der Waals equation: (P + a*n²/V²)(V - n*b) = nRT
+            // Solving for P: P = nRT/(V - n*b) - a*n²/V²
+            float a = gas.vanDerWaalsA;
+            float b = gas.vanDerWaalsB;
+            
+            float term1 = (moles * R * temperature) / (volume - moles * b);
+            float term2 = (a * moles * moles) / (volume * volume);
+            pressure = term1 - term2;
+            
+            // Compressibility factor Z = PV/nRT
+            compressibilityFactor = (pressure * volume) / (moles * R * temperature);
+        } else {
+            // Ideal gas
+            pressure = idealPressure;
+            compressibilityFactor = 1.0f;
+        }
         
         // Update graph data
-        pvData.push_back(glm::vec2(volume, pressure / 1000.0f)); // L vs kPa
+        pvData.push_back(glm::vec2(volume, pressure / 1000.0f)); // m³ vs kPa
         if (pvData.size() > 100) pvData.erase(pvData.begin());
         
         tvData.push_back(glm::vec2(temperature, volume));
         if (tvData.size() > 100) tvData.erase(tvData.begin());
+        
+        zData.push_back(glm::vec2(pressure / 1000.0f, compressibilityFactor));
+        if (zData.size() > 100) zData.erase(zData.begin());
     }
     
     void update(float deltaTime) override {
@@ -86,6 +129,12 @@ public:
         ImGui::Text("Gas Dynamics Simulation");
         ImGui::Separator();
         
+        if (ImGui::Checkbox("Use Real Gas (Van der Waals)", &useRealGas)) {
+            calculate();
+        }
+        
+        ImGui::Separator();
+        
         if (ImGui::SliderFloat("Temperature (K)", &temperature, 0.0f, 1000.0f)) {
             calculate();
         }
@@ -99,6 +148,21 @@ public:
         ImGui::Separator();
         ImGui::Text("Results:");
         ImGui::Text("Pressure: %.2f kPa", pressure / 1000.0f);
+        
+        if (useRealGas) {
+            ImGui::Text("Ideal Pressure: %.2f kPa", idealPressure / 1000.0f);
+            ImGui::Text("Compressibility (Z): %.4f", compressibilityFactor);
+            ImGui::Text("Deviation: %.2f%%", (compressibilityFactor - 1.0f) * 100.0f);
+            
+            if (compressibilityFactor < 0.95f || compressibilityFactor > 1.05f) {
+                ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "Significant real gas effects!");
+            }
+        }
+        
+        ImGui::Separator();
+        ImGui::Text("Van der Waals Constants:");
+        ImGui::Text("a = %.4f Pa·m⁶/mol²", gas.vanDerWaalsA);
+        ImGui::Text("b = %.2e m³/mol", gas.vanDerWaalsB);
     }
     
     void renderGraph() override {
@@ -144,6 +208,28 @@ public:
         
         if (ImGui::Button("Save TV Plot")) {
             requestPlotCapture("gas_tv_plot.png", tvMin, tvMax);
+        }
+        
+        // Compressibility Factor graph (only if using real gas)
+        if (useRealGas) {
+            if (ImPlot::BeginPlot("Compressibility Factor (Z) vs Pressure", plot_size)) {
+                if (!zData.empty()) {
+                    std::vector<float> pressVec, zVec;
+                    for (const auto& point : zData) {
+                        pressVec.push_back(point.x);
+                        zVec.push_back(point.y);
+                    }
+                    ImPlot::PlotLine("Z Factor", pressVec.data(), zVec.data(), pressVec.size());
+                }
+                ImPlot::EndPlot();
+            }
+            
+            ImVec2 zMin = ImGui::GetItemRectMin();
+            ImVec2 zMax = ImGui::GetItemRectMax();
+            
+            if (ImGui::Button("Save Z Plot")) {
+                requestPlotCapture("gas_z_plot.png", zMin, zMax);
+            }
         }
     }
     

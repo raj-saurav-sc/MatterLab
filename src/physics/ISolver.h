@@ -3,6 +3,9 @@
 #include <string>
 #include "Material.h"
 #include "../core/Utils.h"
+#include "../core/vendor/json.hpp"
+
+using json = nlohmann::json;
 
 class ISolver {
 public:
@@ -20,6 +23,10 @@ public:
     
     // Material handling
     virtual void setMaterial(const Material& material) {}
+    
+    // State Management
+    virtual json saveState() const { return json::object(); }
+    virtual void loadState(const json& state) {}
     
     // Identification
     virtual std::string getName() const = 0;
