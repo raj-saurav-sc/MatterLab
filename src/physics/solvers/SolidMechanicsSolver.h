@@ -69,17 +69,43 @@ public:
     }
     
     void calculate() {
+        // Validate inputs to prevent NaN/inf
+        if (area <= 0.0f) area = 0.001f;
+        if (length <= 0.0f) length = 0.1f;
+        if (material.youngsModulus <= 0.0) {
+            std::cerr << "Warning: Invalid Young's Modulus, using default\n";
+            return;
+        }
+        
+        // Clamp force to reasonable values
+        appliedForce = std::clamp(appliedForce, -1e8f, 1e8f);
+        
         strain = calculateStrainFromForce(appliedForce, area, material.youngsModulus);
         
+        // Check for numerical issues
+        if (std::isnan(strain) || std::isinf(strain)) {
+            std::cerr << "Warning: Invalid strain calculated, resetting\n";
+            strain = 0.0;
+            return;
+        }
+        
         // Logic from AdvancedPhysicsEngine::calculateStressWithPlasticity
-        // Inlined here for modularity, or we can move AdvancedPhysicsEngine to a utility file
         calculateStressWithPlasticity();
+        
+        // Validate stress
+        if (std::isnan(stress) || std::isinf(stress)) {
+            std::cerr << "Warning: Invalid stress calculated, resetting\n";
+            stress = 0.0;
+            return;
+        }
         
         elongation = materialState.totalStrain * length;
         
-        // Add to stress-strain curve
-        stressStrainData.push_back(glm::vec2(materialState.totalStrain * 100, stress / 1e6));
-        loadingHistory.push_back(glm::vec2(ImGui::GetTime(), appliedForce));
+        // Add to stress-strain curve (with validation)
+        if (std::isfinite(materialState.totalStrain) && std::isfinite(stress)) {
+            stressStrainData.push_back(glm::vec2(materialState.totalStrain * 100, stress / 1e6));
+            loadingHistory.push_back(glm::vec2(ImGui::GetTime(), appliedForce));
+        }
         
         if (stressStrainData.size() > 1000) {
             stressStrainData.erase(stressStrainData.begin());
@@ -282,11 +308,24 @@ public:
     
 private:
     double calculateStrainFromForce(double force, double area, double E) {
+        // Prevent division by zero
+        if (area <= 1e-10 || E <= 1e-10) {
+            return 0.0;
+        }
         double stress = force / area;
-        return stress / E; // Initial elastic assumption
+        double strain = stress / E;
+        
+        // Clamp to reasonable values
+        return std::clamp(strain, -10.0, 10.0); // Max 1000% strain
     }
     
     void calculateStressWithPlasticity() {
+        // Prevent division by zero
+        if (material.youngsModulus <= 1e-10) {
+            stress = 0.0;
+            return;
+        }
+        
         if (strain <= materialState.elasticStrain + materialState.plasticStrain) {
             // Unloading
             materialState.elasticStrain = strain - materialState.plasticStrain;
@@ -307,14 +346,21 @@ private:
                 materialState.plasticStrain = strain - elasticStrainLimit;
                 
                 // Simplified linear work hardening
-                double hardening = (material.ultimateTensileStrength - material.yieldStrength) / 0.1; // over 10% strain
+                double strainRange = 0.1; // 10% strain range
+                double strengthDiff = material.ultimateTensileStrength - material.yieldStrength;
+                double hardening = (strainRange > 1e-10) ? (strengthDiff / strainRange) : 0.0;
                 stress = materialState.currentYieldStrength + hardening * materialState.plasticStrain;
                 
+                // Clamp stress to reasonable values
+                stress = std::clamp(stress, -1e10, 1e10);
                 materialState.currentYieldStrength = stress;
 
                 if (stress > material.ultimateTensileStrength) {
                     materialState.isFractured = true;
-                    materialState.damageParameter = (stress - material.ultimateTensileStrength) / (material.ultimateTensileStrength * 0.1);
+                    double denominator = material.ultimateTensileStrength * 0.1;
+                    materialState.damageParameter = (denominator > 1e-10) ? 
+                        ((stress - material.ultimateTensileStrength) / denominator) : 1.0;
+                    materialState.damageParameter = std::clamp(materialState.damageParameter, 0.0, 10.0);
                     if (materialState.crackTips.empty()) {
                         materialState.crackTips.push_back(glm::vec3(0,0,0));
                     }
