@@ -46,8 +46,15 @@ public:
         if (state.contains("moles")) moles = state["moles"];
         calculate();
     }
-
-    void setGas(const Material& g) { gas = g; }
+    void setMaterial(const Material& mat) override { 
+        gas = mat;
+        calculate(); // Recalculate with new material
+    }
+    
+    void setGas(const Material& g) { 
+        gas = g; 
+        calculate();
+    }
     void setTemperature(float t) { temperature = t; calculate(); }
     
     void initialize() override {
