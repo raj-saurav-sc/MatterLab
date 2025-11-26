@@ -368,21 +368,23 @@ private:
         // Source terms
         for (int i = 1; i <= N; i++) {
             for (int j = 1; j <= N; j++) {
-                float k_val = std::max(k[IX(i, j)], 0.001f);
-                float prod = C_1 * (epsilon[IX(i, j)] / k_val) * P_k[IX(i, j)];
-                float diss = C_2 * (epsilon[IX(i, j)] * epsilon[IX(i, j)]) / k_val;
-                epsilon[IX(i, j)] += dt * (prod - diss);
-                if (epsilon[IX(i, j)] < 0.001f) epsilon[IX(i, j)] = 0.001f;
+                int idx = IX(i, j);
+                float k_val = std::max(k[idx], 0.001f);
+                float prod = C_1 * (epsilon[idx] / k_val) * P_k[idx];
+                float diss = C_2 * (epsilon[idx] * epsilon[idx]) / k_val;
+                epsilon[idx] += dt * (prod - diss);
+                if (epsilon[idx] < 0.001f) epsilon[idx] = 0.001f;
+                
+                // Clamp k and epsilon to prevent negative values and division by zero
+                k[idx] = std::max(k[idx], 1e-10f);
+                epsilon[idx] = std::max(epsilon[idx], 1e-10f);
+                
+                // Update turbulent viscosity: nu_t = C_mu * k^2 / epsilon
+                nu_t[idx] = C_mu * k[idx] * k[idx] / epsilon[idx];
+                
+                // Limit turbulent viscosity to reasonable values
+                nu_t[idx] = std::min(nu_t[idx], 1000.0f * visc);
             }
-        }
-        
-        // Update turbulent viscosity: ν_t = C_μ * k² / ε
-        for (int i = 0; i < SIZE; i++) {
-            float k_val = std::max(k[i], 0.001f);
-            float eps_val = std::max(epsilon[i], 0.001f);
-            nu_t[i] = C_mu * (k_val * k_val) / eps_val;
-            // Limit turbulent viscosity
-            if (nu_t[i] > 1.0f) nu_t[i] = 1.0f;
         }
     }
     

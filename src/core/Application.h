@@ -202,7 +202,7 @@ private:
         handleInput();
         
         float deltaTime = ImGui::GetIO().DeltaTime;
-        if (currentScenario >= 0 && currentScenario < solvers.size()) {
+        if (currentScenario >= 0 && currentScenario < static_cast<int>(solvers.size())) {
             solvers[currentScenario]->update(deltaTime);
         }
     }
@@ -332,7 +332,7 @@ private:
         renderGrid();
         renderAxes();
         
-        if (currentScenario >= 0 && currentScenario < solvers.size()) {
+        if (currentScenario >= 0 && currentScenario < static_cast<int>(solvers.size())) {
             solvers[currentScenario]->render3D();
         }
         
@@ -381,7 +381,7 @@ private:
                 bool isSelected = (selectedMaterial == name);
                 if (ImGui::Selectable(name.c_str(), isSelected)) {
                     selectedMaterial = name;
-                    if (currentScenario >= 0 && currentScenario < solvers.size()) {
+                    if (currentScenario >= 0 && currentScenario < static_cast<int>(solvers.size())) {
                         solvers[currentScenario]->setMaterial(materialDB.getMaterial(selectedMaterial));
                     }
                 }
@@ -431,7 +431,7 @@ private:
         ImGui::Separator();
         
         // Solver-specific UI
-        if (currentScenario >= 0 && currentScenario < solvers.size()) {
+        if (currentScenario >= 0 && currentScenario < static_cast<int>(solvers.size())) {
             solvers[currentScenario]->renderUI();
         }
         
@@ -441,7 +441,7 @@ private:
         ImGui::SetNextWindowPos(ImVec2(10, 620), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(600, 300), ImGuiCond_FirstUseEver);
         ImGui::Begin("Data Visualization");
-        if (currentScenario >= 0 && currentScenario < solvers.size()) {
+        if (currentScenario >= 0 && currentScenario < static_cast<int>(solvers.size())) {
             solvers[currentScenario]->renderGraph();
         }
         ImGui::End();
@@ -552,7 +552,7 @@ private:
             selectedMaterial = customMaterial.name;
             
             // Update current solver
-            if (currentScenario >= 0 && currentScenario < solvers.size()) {
+            if (currentScenario >= 0 && currentScenario < static_cast<int>(solvers.size())) {
                 solvers[currentScenario]->setMaterial(customMaterial);
             }
         }
@@ -605,7 +605,7 @@ private:
         }
         
         // Re-apply material to current solver to ensure consistency
-        if (currentScenario >= 0 && currentScenario < solvers.size()) {
+        if (currentScenario >= 0 && currentScenario < static_cast<int>(solvers.size())) {
             solvers[currentScenario]->setMaterial(materialDB.getMaterial(selectedMaterial));
         }
         

@@ -18,8 +18,31 @@ public:
         const std::vector<glm::vec3>& vectorData = {},
         const std::string& vectorName = ""
     ) {
+        // Input validation
+        size_t expectedSize = static_cast<size_t>((nx + 1) * (ny + 1) * (nz + 1));
+        
+        if (!scalarData.empty() && scalarData.size() != expectedSize) {
+            std::cerr << "Error: Scalar data size mismatch. Expected " 
+                      << expectedSize << ", got " << scalarData.size() << "\n";
+            return false;
+        }
+        
+        if (!vectorData.empty() && vectorData.size() != expectedSize) {
+            std::cerr << "Error: Vector data size mismatch. Expected " 
+                      << expectedSize << ", got " << vectorData.size() << "\n";
+            return false;
+        }
+        
+        // Large export warning
+        if (expectedSize > 1000000) {
+            std::cout << "Warning: Large export (" << expectedSize << " points)\n";
+        }
+        
         std::ofstream file(filename);
-        if (!file.is_open()) return false;
+        if (!file.is_open()) {
+            std::cerr << "Error: Failed to open file '" << filename << "' for writing\n";
+            return false;
+        }
         
         // VTK XML header
         file << "<?xml version=\"1.0\"?>\n";
@@ -92,8 +115,39 @@ public:
         const std::vector<glm::vec3>& vectorData = {},
         const std::string& vectorName = ""
     ) {
+        // Input validation
+        if (points.empty()) {
+            std::cerr << "Error: No points provided for unstructured grid\n";
+            return false;
+        }
+        
+        if (cells.empty()) {
+            std::cerr << "Error: No cells provided for unstructured grid\n";
+            return false;
+        }
+        
+        if (!scalarData.empty() && scalarData.size() != points.size()) {
+            std::cerr << "Error: Scalar data size (" << scalarData.size() 
+                      << ") doesn't match points (" << points.size() << ")\n";
+            return false;
+        }
+        
+        if (!vectorData.empty() && vectorData.size() != points.size()) {
+            std::cerr << "Error: Vector data size (" << vectorData.size() 
+                      << ") doesn't match points (" << points.size() << ")\n";
+            return false;
+        }
+        
+        // Large export warning
+        if (points.size() > 1000000) {
+            std::cout << "Warning: Large export (" << points.size() << " points)\n";
+        }
+        
         std::ofstream file(filename);
-        if (!file.is_open()) return false;
+        if (!file.is_open()) {
+            std::cerr << "Error: Failed to open file '" << filename << "' for writing\n";
+            return false;
+        }
         
         // VTK XML header
         file << "<?xml version=\"1.0\"?>\n";
