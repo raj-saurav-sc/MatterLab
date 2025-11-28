@@ -24,6 +24,7 @@
 *   **Real Gas Equations**: Van der Waals equation for high-pressure accuracy
 *   **Compressibility Factor**: Z-factor calculation and visualization
 *   **Gas-Specific Constants**: Air, CO₂, Helium with accurate properties
+*   **Shock Wave Simulation**: 1D compressible flow (Sod Shock Tube)
 
 ### 🔥 Thermodynamics & Phase Changes
 *   **Phase Transitions**: Ice → Water → Steam with latent heat
@@ -158,7 +159,7 @@ Modular design with clean separation of concerns:
 *   Interactive UI
 *   12 Simulation Scenarios
 
-### Phase 2 (20% Complete) 🚧
+### Phase 2 (22% Complete) 🚧
 
 #### Completed ✅
 *   **Architecture Refactor**: Modular ISolver interface
@@ -167,6 +168,7 @@ Modular design with clean separation of concerns:
 *   **CFD Solver**: Navier-Stokes (Stable Fluids)
 *   **Turbulence Models**: k-ε with Reynolds number
 *   **Real Gas Equations**: Van der Waals, compressibility
+*   **Shock Wave Simulation**: 1D Euler equations (Sod Shock Tube)
 *   **Vector Field Visualization**: Arrow glyphs, magnitude coloring
 *   **VTK Export**: Paraview integration (.vts, .vtu)
 *   **Custom Material Editor**: UI-based material creation
@@ -176,7 +178,6 @@ Modular design with clean separation of concerns:
 
 #### In Progress 🚧
 *   Thermal-Structural Coupling
-*   Shock Wave Simulation
 *   Mesh Visualization
 *   Contour Plots
 *   Parametric Studies

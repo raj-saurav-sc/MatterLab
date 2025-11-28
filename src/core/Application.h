@@ -31,6 +31,7 @@
 #include "../physics/solvers/PipeFlowSimulator.h"
 #include "../physics/solvers/FluidConvectionSimulator.h"
 #include "../physics/solvers/CoupledHeatSimulator.h"
+#include "../physics/solvers/ShockWaveSolver.h"
 #include "../physics/solvers/FEMSolver.h"
 #include "../physics/solvers/CFDSolver.h"
 
@@ -120,13 +121,22 @@ public:
         solvers.push_back(std::make_shared<OrbitalMechanicsSimulator>());
         solvers.push_back(std::make_shared<PipeFlowSimulator>());
         solvers.push_back(std::make_shared<FluidConvectionSimulator>());
-        solvers.push_back(std::make_shared<CoupledHeatSimulator>());
+        solvers.push_back(std::make_unique<CoupledHeatSimulator>());
         solvers.push_back(std::make_shared<FEMSolver>());
         solvers.push_back(std::make_shared<CFDSolver>());
+        solvers.push_back(std::make_unique<ShockWaveSolver>());      // Advanced Gas Dynamics
         
-        for (auto& solver : solvers) {
-            solver->initialize();
-            solver->setMaterial(materialDB.getMaterial("Steel"));
+        for (size_t i = 0; i < solvers.size(); ++i) {
+            solvers[i]->initialize();
+            
+            // Set appropriate default material based on solver type
+            if (i == 2) { // Gas Dynamics
+                solvers[i]->setMaterial(materialDB.getMaterial("Air"));
+            } else if (i == 1 || i == 8 || i == 9) { // Fluid-based solvers
+                solvers[i]->setMaterial(materialDB.getMaterial("Water"));
+            } else {
+                solvers[i]->setMaterial(materialDB.getMaterial("Steel"));
+            }
         }
         
         setupCamera();
